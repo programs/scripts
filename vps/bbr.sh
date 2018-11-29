@@ -152,7 +152,7 @@ function bbrinstall()
 		echo -e "${Info} 检测到 当前内核版本 不支持开启BBR，开始..."
 		virt=`virt-what`
 		if [[ -z ${virt} ]]; then
-			apt-get update && apt-get install virt-what -y
+			apt-get update && apt-get install -y --no-install-recommends virt-what
 			virt=`virt-what`
 		fi
 		if [[ ${virt} == "openvz" ]]; then
