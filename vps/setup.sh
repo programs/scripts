@@ -206,8 +206,12 @@ case "$action" in
 	install | tip)
 	exec_${action}
 	;;
+	upgrade)
+	checkRoot
+	updateSystem
+	;;
 	*)
 	echo "输入错误 !"
-	echo "用法: { install | tip }"
+	echo "用法: { install | tip | upgrade }"
 	;;
 esac
