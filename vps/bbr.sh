@@ -62,16 +62,20 @@ function getLatestVersion()
 		deb_kernel_name="linux-image-${latest_version}-amd64.deb"
 
 		deb_module=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "modules" | grep "generic" | awk -F'\">' '/amd64.deb/{print $2}' | cut -d'<' -f1 | head -1)
-		deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
-		deb_module_name="linux-module-${latest_version}-amd64.deb"
+		if [ ! -z "${deb_module}" ]; then
+		    deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
+		    deb_module_name="linux-module-${latest_version}-amd64.deb"
+		fi
 	else
 		deb_name=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "linux-image" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
 		deb_kernel_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_name}"
 		deb_kernel_name="linux-image-${latest_version}-i386.deb"
 
 		deb_module=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "modules" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
-		deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
-		deb_module_name="linux-module-${latest_version}-i386.deb"
+		if [ ! -z "${deb_module}" ]; then
+		    deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
+		    deb_module_name="linux-module-${latest_version}-i386.deb"
+		fi
 	fi
 }
 
@@ -104,11 +108,11 @@ function deleteOtherKernel()
 		for((integer = 1; integer <= ${deb_total}; integer++))
 		do
 			deb_del=`dpkg -l|grep linux-image | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
-			#deb_del_module=`dpkg -l|grep linux-modules | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
+			deb_del_module=`dpkg -l|grep linux-modules | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
 
 			echo -e "${Info} 开始卸载 ${deb_del} 内核..."
 			apt-get purge -y ${deb_del}
-			#[ ! -z "${deb_del_module}" ] && apt-get purge -y ${deb_del_module}
+			[ ! -z "${deb_del_module}" ] && apt-get purge -y ${deb_del_module}
 			echo -e "${Info} 卸载 ${deb_del} 内核卸载完成，继续..."
 		done
 		deb_total=`dpkg -l|grep linux-image | awk '{print $2}' | wc -l`
@@ -178,11 +182,13 @@ function bbrinstall()
 	if [[ -s ${deb_kernel_name} ]]; then
 		echo -e "${Info} 内核文件下载成功，开始安装内核..."
 
-        #某此内核需要modules的支持
-		wget -O "${deb_module_name}" "${deb_module_url}"
-		if [[ -s ${deb_module_name} ]]; then
-		    dpkg -i ${deb_module_name}
-			rm -rf ${deb_module_name}
+        if [ ! -z "${deb_module}" ]; then
+			#某此内核需要modules的支持
+			wget -O "${deb_module_name}" "${deb_module_url}"
+			if [[ -s ${deb_module_name} ]]; then
+				dpkg -i ${deb_module_name}
+				rm -rf ${deb_module_name}
+			fi
 		fi
 
 		dpkg -i ${deb_kernel_name}
