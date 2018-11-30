@@ -165,8 +165,9 @@ function setupSsrmu()
 	wget -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/gorouter/zeropro/master/shadowsocks-all.sh
 	chmod +x /home/bin/ssrmu.sh
 	/home/bin/ssrmu.sh autoinstall 2>&1 | tee /var/log/startupssr.log
-	/etc/init.d/shadowsocks-r restart
 
+	wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
+	/etc/init.d/shadowsocks-r restart
 	echo -e "SSR 已完成安装，请查看 ${GreenFont}/var/log/startupssr.log ${FontEnd}"
 }
 
