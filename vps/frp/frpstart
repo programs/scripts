@@ -1,0 +1,3 @@
+#!/bin/bash
+
+nohup /root/frp/frps -c /root/frp/frps.ini &
