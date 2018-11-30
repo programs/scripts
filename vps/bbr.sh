@@ -111,8 +111,8 @@ function deleteOtherKernel()
 			deb_del_module=`dpkg -l|grep linux-modules | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
 
 			echo -e "${Info} 开始卸载 ${deb_del} 内核..."
-			apt-get purge -y ${deb_del}
 			[ ! -z "${deb_del_module}" ] && apt-get purge -y ${deb_del_module}
+			apt-get purge -y ${deb_del}
 			echo -e "${Info} 卸载 ${deb_del} 内核卸载完成，继续..."
 		done
 		deb_total=`dpkg -l|grep linux-image | awk '{print $2}' | wc -l`
