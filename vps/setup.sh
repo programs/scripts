@@ -14,6 +14,26 @@ function checkRoot()
 	[[ $EUID != 0 ]] && echo -e "${Error} 当前账号非ROOT(或没有ROOT权限)，无法继续操作，请使用${GreenBack} sudo su ${FontEnd}来获取临时ROOT权限（执行后会提示输入当前账号的密码）。" && exit 1
 }
 
+#检查系统
+function checkSystem()
+{
+	if [[ -f /etc/redhat-release ]]; then
+		release="centos"
+	elif cat /etc/issue | grep -q -E -i "debian"; then
+		release="debian"
+	elif cat /etc/issue | grep -q -E -i "ubuntu"; then
+		release="ubuntu"
+	elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
+		release="centos"
+	elif cat /proc/version | grep -q -E -i "debian"; then
+		release="debian"
+	elif cat /proc/version | grep -q -E -i "ubuntu"; then
+		release="ubuntu"
+	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
+		release="centos"
+    fi
+}
+
 function createSwap()
 {
 	tram_size=$( free -m | awk '/Mem/ {print $2}' )
@@ -74,8 +94,39 @@ function createUser()
 	fi
 }
 
-function startServices()
+function installddos()
 {
+	if [ -d '/usr/local/ddos' ]; then
+		echo; echo; echo -e "${Tip}请首先卸载之前的DDOS版本"
+	else
+		mkdir /usr/local/ddos
+
+		echo; echo '正在安装 DOS-Deflate 0.6'; echo
+		echo; echo -n '正在下载DDOS源文件...'
+		wget -q -O /usr/local/ddos/ddos.conf http://www.inetbase.com/scripts/ddos/ddos.conf
+		echo -n '.'
+		wget -q -O /usr/local/ddos/LICENSE http://www.inetbase.com/scripts/ddos/LICENSE
+		echo -n '.'
+		wget -q -O /usr/local/ddos/ignore.ip.list http://www.inetbase.com/scripts/ddos/ignore.ip.list
+		echo -n '.'
+		wget -q -O /usr/local/ddos/ddos.sh http://www.inetbase.com/scripts/ddos/ddos.sh
+		chmod 0755 /usr/local/ddos/ddos.sh
+		cp -s /usr/local/ddos/ddos.sh /usr/local/sbin/ddos
+		echo '...done'
+
+		echo; echo -n 'Creating cron to run script every minute.....(Default setting)'
+		/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
+		echo '.....done'
+		echo; echo 'DDOS 安装完成.'
+	fi
+}
+
+function installServices()
+{
+	apt-get update && apt-get install -y --no-install-recommends virt-what fail2ban supervisor
+	mkdir -p /home/bin /home/frp
+	cd 
+
 	service sshd restart
 	
 	service fail2ban restart
@@ -86,25 +137,7 @@ function startServices()
 
 	iptables-restore < /etc/iptables.up.rules
 }
-#检查系统
-function checkSystem()
-{
-	if [[ -f /etc/redhat-release ]]; then
-		release="centos"
-	elif cat /etc/issue | grep -q -E -i "debian"; then
-		release="debian"
-	elif cat /etc/issue | grep -q -E -i "ubuntu"; then
-		release="ubuntu"
-	elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
-		release="centos"
-	elif cat /proc/version | grep -q -E -i "debian"; then
-		release="debian"
-	elif cat /proc/version | grep -q -E -i "ubuntu"; then
-		release="ubuntu"
-	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
-		release="centos"
-    fi
-}
+
 
 function setLastNewKernel()
 {
