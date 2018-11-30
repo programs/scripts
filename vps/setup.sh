@@ -34,6 +34,12 @@ function checkSystem()
     fi
 }
 
+function updateSystem()
+{
+	echo -e "正在更新系统..."
+	apt-get update && apt-get upgrade -y
+}
+
 function createSwap()
 {
 	tram_size=$( free -m | awk '/Mem/ {print $2}' )
@@ -97,280 +103,90 @@ function createUser()
 function installddos()
 {
 	if [ -d '/usr/local/ddos' ]; then
-		echo; echo; echo -e "${Tip}请首先卸载之前的DDOS版本"
+		echo; echo; echo -e "${Tip}请首先卸载之前的 DDOS 版本"
 	else
 		mkdir /usr/local/ddos
 
-		echo; echo '正在安装 DOS-Deflate 0.6'; echo
-		echo; echo -n '正在下载DDOS源文件...'
-		wget -q -O /usr/local/ddos/ddos.conf http://www.inetbase.com/scripts/ddos/ddos.conf
+		echo; echo '正在安装 DDOS'; echo
+		echo; echo -n '正在下载 DDOS 源文件...'
+		wget -q -O /usr/local/ddos/ddos.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.conf
 		echo -n '.'
-		wget -q -O /usr/local/ddos/LICENSE http://www.inetbase.com/scripts/ddos/LICENSE
+		wget -q -O /usr/local/ddos/ignore.ip.list https://raw.githubusercontent.com/programs/scripts/master/vps/config/ignore.ip.list
 		echo -n '.'
-		wget -q -O /usr/local/ddos/ignore.ip.list http://www.inetbase.com/scripts/ddos/ignore.ip.list
-		echo -n '.'
-		wget -q -O /usr/local/ddos/ddos.sh http://www.inetbase.com/scripts/ddos/ddos.sh
+		wget -q -O /usr/local/ddos/ddos.sh https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.sh
 		chmod 0755 /usr/local/ddos/ddos.sh
 		cp -s /usr/local/ddos/ddos.sh /usr/local/sbin/ddos
-		echo '...done'
+		echo '...完成'
 
-		echo; echo -n 'Creating cron to run script every minute.....(Default setting)'
+		echo; echo -n '按照默认设置 DDOS 运行任务.....'
 		/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
-		echo '.....done'
+		echo '.....完成'
 		echo; echo 'DDOS 安装完成.'
 	fi
 }
 
 function installServices()
 {
+	echo -e "正在安装系统软件..."
 	apt-get update && apt-get install -y --no-install-recommends virt-what fail2ban supervisor
-	mkdir -p /home/bin /home/frp
-	cd 
+
+	if [ -d /home/bin ]; then
+		rm -rf /home/bin
+		mkdir -p /home/bin
+	fi
+	if [ -d /home/frp ]; then
+		rm -rf /home/frp
+		mkdir -p /home/frp
+	fi
+
+	echo -e "正在下载源文件..."
+	wget -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
+	wget -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
+	wget -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
+
+	wget -q -O /etc/ssh/sshd_config https://raw.githubusercontent.com/programs/scripts/master/vps/config/sshd_config
+	wget -q -O /etc/fail2ban/jail.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/jail.conf
+	wget -q -O /etc/supervisor/conf.d/frp.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/frp.conf
+	wget -q -O /etc/iptables.up.rules https://raw.githubusercontent.com/programs/scripts/master/vps/config/iptables.up.rules
 
 	service sshd restart
-	
 	service fail2ban restart
 	fail2ban-client status
-	
 	systemctl restart supervisor
 	supervisorctl status
-
 	iptables-restore < /etc/iptables.up.rules
+
+	echo -e "系统软件安装完成."
 }
 
-
-function setLastNewKernel()
+function setupSsrmu()
 {
-	echo -e "请输入 要下载安装的Linux内核版本(BBR) [ 格式: x.xx.xx ，例如: 4.9.135 ]
-${Tip} 内核版本列表请去这里获取：[ http://kernel.ubuntu.com/~kernel-ppa/mainline/ ]
-如果只在乎稳定，那么不需要追求最新版本（新版本不保证稳定），可以选择 4.9.XX 稳定版本。"
-	stty erase '^H' && read -p "(默认回车，自动获取最新版本):" latest_version
-	[[ -z "${latest_version}" ]] && getLastestKernel
-	echo
+	echo -e "正在安装 SSR (SSR将安装默认设置自动完成) ..."
+	wget -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/gorouter/zeropro/master/shadowsocks-all.sh
+	chmod +x /home/bin/ssrmu.sh
+	/home/bin/ssrmu.sh autoinstall 2>&1 | tee /var/log/startupssr.log
+	/etc/init.d/shadowsocks-r restart
+
+	echo -e "SSR 已完成安装，请查看 ${GreenFont}/var/log/startupssr.log ${FontEnd}"
 }
 
-function getLastestKernel()
+function setupBBR()
 {
-	echo -e "${Info} 检测内核最新版本中..."
-	latest_version=$(wget -qO- "http://kernel.ubuntu.com/~kernel-ppa/mainline/" | awk -F'\"v' '/v[4-9].[0-9]*.[0-9]/{print $2}' |grep -v '\-rc'| cut -d/ -f1 | sort -V | tail -1)
-	[[ -z ${latest_version} ]] && echo -e "${Error} 检测内核最新版本失败 !" && exit 1
-	echo -e "${Info} 当前内核最新版本为 : ${latest_version}"
+	wget -q -O /home/bin/bbr.sh https://raw.githubusercontent.com/programs/scripts/master/vps/bbr.sh
+	chmod +x /home/bin/bbr.sh
+	/home/bin/bbr.sh
 }
 
-function getLatestVersion()
-{
-	setLastNewKernel
-	bit=`uname -m`
-	if [[ ${bit} == "x86_64" ]]; then
-		deb_name=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "linux-image" | grep "generic" | awk -F'\">' '/amd64.deb/{print $2}' | cut -d'<' -f1 | head -1)
-		deb_kernel_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_name}"
-		deb_kernel_name="linux-image-${latest_version}-amd64.deb"
-
-		deb_module=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "modules" | grep "generic" | awk -F'\">' '/amd64.deb/{print $2}' | cut -d'<' -f1 | head -1)
-		if [ ! -z "${deb_module}" ]; then
-		    deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
-		    deb_module_name="linux-module-${latest_version}-amd64.deb"
-		fi
-	else
-		deb_name=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "linux-image" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
-		deb_kernel_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_name}"
-		deb_kernel_name="linux-image-${latest_version}-i386.deb"
-
-		deb_module=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "modules" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
-		if [ ! -z "${deb_module}" ]; then
-		    deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
-		    deb_module_name="linux-module-${latest_version}-i386.deb"
-		fi
-	fi
-}
-
-#检查内核是否满足
-function checkKernelStatus()
-{
-	getLastestKernel
-	deb_ver=`dpkg -l|grep linux-image | awk '{print $3}' | awk -F '-' '{print $1}' | grep '[4-9].[0-9]*.'`
-	latest_version_2=$(echo "${latest_version}"|grep -o '\.'|wc -l)
-	if [[ "${latest_version_2}" == "1" ]]; then
-		latest_version="${latest_version}.0"
-	fi
-	if [[ "${deb_ver}" != "" ]]; then
-		if [[ "${deb_ver}" == "${latest_version}" ]]; then
-			echo -e "${Info} 检测到 当前内核版本[${deb_ver}] 已满足要求，继续..."
-		else
-			echo -e "${Tip} 检测到 当前内核版本[${deb_ver}] 支持开启BBR但不是最新内核版本，可以使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来升级内核 !"
-			echo -e "${Tip} (并不是越新的内核越好，不保证其稳定性，旧版本如使用无问题 建议不要升级！)"
-		fi
-	else
-		echo -e "${Error} 检测到 当前内核版本[${deb_ver}] 不支持开启BBR，请使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来更换最新内核 !" && exit 1
-	fi
-}
-
-#删除其余内核
-function deleteOtherKernel()
-{
-	deb_total=`dpkg -l | grep linux-image | awk '{print $2}' | grep -v "${latest_version}" | wc -l`
-	if [[ "${deb_total}" -ge "1" ]]; then
-		echo -e "${Info} 检测到 ${deb_total} 个其余内核，开始卸载..."
-		for((integer = 1; integer <= ${deb_total}; integer++))
-		do
-			deb_del=`dpkg -l|grep linux-image | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
-			deb_del_module=`dpkg -l|grep linux-modules | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
-
-			echo -e "${Info} 开始卸载 ${deb_del} 内核..."
-			apt-get purge -y ${deb_del}
-			[ ! -z "${deb_del_module}" ] && apt-get purge -y ${deb_del_module}
-			echo -e "${Info} 卸载 ${deb_del} 内核卸载完成，继续..."
-		done
-		deb_total=`dpkg -l|grep linux-image | awk '{print $2}' | wc -l`
-		if [[ "${deb_total}" = "1" ]]; then
-			echo -e "${Info} 内核卸载完毕，继续..."
-		else
-			echo -e "${Error} 内核卸载异常，请检查 !" && exit 1
-		fi
-	else
-		echo -e "${Info} 检测到 除刚安装的内核以外已无多余内核，跳过卸载多余内核步骤 !"
-	fi
-}
-
-function bbrCleanup()
-{
-	deleteOtherKernel
-	update-grub
-	addsysctl
-	(echo 'y') | apt autoremove
-	echo -e "${Tip} 重启VPS后，请重新运行脚本查看BBR是否加载成功，运行命令： ${GreenBack} bash ${file}/bbr.sh status ${FontEnd}"
-	stty erase '^H' && read -p "需要重启VPS后，才能开启BBR，是否现在重启 ? [Y/n] :" yn
-	[[ -z "${yn}" ]] && yn="y"
-	if [[ $yn == [Yy] ]]; then
-		echo -e "${Info} VPS 重启中..."
-		reboot
-	fi
-}
-
-#安装BBR
-function bbrinstall()
+function initinstall()
 {
 	checkRoot
-	getLatestVersion
-	deb_ver=`dpkg -l|grep linux-image | awk '{print $3}' | awk -F '-' '{print $1}' | grep '[4-9].[0-9]*.'`
-	latest_version_2=$(echo "${latest_version}"|grep -o '\.'|wc -l)
-	if [[ "${latest_version_2}" == "1" ]]; then
-		latest_version="${latest_version}.0"
-	fi
-	if [[ "${deb_ver}" != "" ]]; then	
-		if [[ "${deb_ver}" == "${latest_version}" ]]; then
-			echo -e "${Info} 检测到 当前内核版本 已是最新版本，无需继续 !"
-			deb_total=`dpkg -l|grep linux-image | awk '{print $2}' | grep -v "${latest_version}" | wc -l`
-			if [[ "${deb_total}" != "0" ]]; then
-				echo -e "${Info} 检测到内核数量异常，存在多余内核，开始删除..."
-				bbrCleanup
-			else
-				exit 1
-			fi
-		else
-			echo -e "${Info} 检测到 当前内核版本支持开启BBR 但不是最新内核版本，升级(或降级)内核..."
-		fi
-	else
-		echo -e "${Info} 检测到 当前内核版本 不支持开启BBR，开始..."
-		virt=`virt-what`
-		if [[ -z ${virt} ]]; then
-			apt-get update && apt-get install -y --no-install-recommends virt-what
-			virt=`virt-what`
-		fi
-		if [[ ${virt} == "openvz" ]]; then
-			echo -e "${Error} BBR 不支持 OpenVZ 虚拟化 !" && exit 1
-		fi
-	fi
-	echo "nameserver 8.8.8.8" > /etc/resolv.conf
-	echo "nameserver 8.8.4.4" >> /etc/resolv.conf
-	
-	wget -O "${deb_kernel_name}" "${deb_kernel_url}"
-	if [[ -s ${deb_kernel_name} ]]; then
-		echo -e "${Info} 内核文件下载成功，开始安装内核..."
-
-        if [ ! -z "${deb_module}" ]; then
-			#某此内核需要modules的支持
-			wget -O "${deb_module_name}" "${deb_module_url}"
-			if [[ -s ${deb_module_name} ]]; then
-				dpkg -i ${deb_module_name}
-				rm -rf ${deb_module_name}
-			fi
-		fi
-		dpkg -i ${deb_kernel_name}
-		rm -rf ${deb_kernel_name}
-	else
-		echo -e "${Error} 内核文件下载失败，请检查 !" && exit 1
-	fi
-
-	#判断内核是否安装成功
-	deb_ver=`dpkg -l | grep linux-image | awk '{print $3}' | awk -F '-' '{print $1}' | grep "${latest_version}"`
-	if [[ "${deb_ver}" != "" ]]; then
-		echo -e "${Info} 检测到 内核 已安装成功，开始卸载其余内核..."
-		bbrCleanup
-	else
-		echo -e "${Error} 检测到 内核版本 安装失败，请检查 !" && exit 1
-	fi
-}
-
-function checkBbrStatus()
-{
-	check_bbr_status_on=`sysctl net.ipv4.tcp_congestion_control | awk '{print $3}'`
-	if [[ "${check_bbr_status_on}" = "bbr" ]]; then
-		echo -e "${Info} 检测到 BBR 已开启 !"
-		# 检查是否启动BBR
-		check_bbr_status_off=`lsmod | grep bbr`
-		if [[ "${check_bbr_status_off}" = "" ]]; then
-			echo -e "${Error} 检测到 BBR 已开启但未正常启动，请检查(可能是存着兼容性问题，虽然内核配置中打开了BBR，但是内核加载BBR模块失败) !"
-		else
-			echo -e "${Info} 检测到 BBR 已开启并已正常启动 !"
-		fi
-		exit 1
-	fi
-}
-
-function addsysctl()
-{
-	sed -i '/net\.core\.default_qdisc=fq/d' /etc/sysctl.conf
-	sed -i '/net\.ipv4\.tcp_congestion_control=bbr/d' /etc/sysctl.conf
-	
-	echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-	sysctl -p
-}
-
-#启动BBR
-function bbrstart()
-{
-	checkKernelStatus
-	checkBbrStatus
-	addsysctl
-	sleep 1s
-	checkBbrStatus
-}
-
-#关闭BBR
-function bbrstop()
-{
-	checkKernelStatus
-	sed -i '/net\.core\.default_qdisc=fq/d' /etc/sysctl.conf
-	sed -i '/net\.ipv4\.tcp_congestion_control=bbr/d' /etc/sysctl.conf
-	sysctl -p
-	sleep 1s
-	
-	stty erase '^H' && read -p "需要重启VPS后，才能彻底停止BBR，是否现在重启 ? [Y/n] :" yn
-	[[ -z "${yn}" ]] && yn="y"
-	if [[ $yn == [Yy] ]]; then
-		echo -e "${Info} VPS 重启中..."
-		reboot
-	fi
-}
-
-#查看BBR状态
-function bbrstatus()
-{
-	checkKernelStatus
-	checkBbrStatus
-	echo -e "${Error} BBR 未开启 !"
+	updateSystem
+	createUser
+	installddos
+	createSwap
+	setupSsrmu
+	installServices
+	setupBBR
 }
 
 #主程序入口
@@ -379,11 +195,11 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=install
 case "$action" in
-	install|start|stop|status)
-	bbr${action}
+	install)
+	init${action}
 	;;
 	*)
 	echo "输入错误 !"
-	echo "用法: { install | start | stop | status }"
+	echo "用法: { install }"
 	;;
 esac
