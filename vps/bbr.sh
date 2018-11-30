@@ -60,10 +60,18 @@ function getLatestVersion()
 		deb_name=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "linux-image" | grep "generic" | awk -F'\">' '/amd64.deb/{print $2}' | cut -d'<' -f1 | head -1)
 		deb_kernel_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_name}"
 		deb_kernel_name="linux-image-${latest_version}-amd64.deb"
+
+		deb_module=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "modules" | grep "generic" | awk -F'\">' '/amd64.deb/{print $2}' | cut -d'<' -f1 | head -1)
+		deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
+		deb_module_name="linux-module-${latest_version}-amd64.deb"
 	else
 		deb_name=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "linux-image" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
 		deb_kernel_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_name}"
 		deb_kernel_name="linux-image-${latest_version}-i386.deb"
+
+		deb_module=$(wget -qO- http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/ | grep "modules" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
+		deb_module_url="http://kernel.ubuntu.com/~kernel-ppa/mainline/v${latest_version}/${deb_module}"
+		deb_module_name="linux-module-${latest_version}-i386.deb"
 	fi
 }
 
@@ -165,8 +173,14 @@ function bbrinstall()
 	wget -O "${deb_kernel_name}" "${deb_kernel_url}"
 	if [[ -s ${deb_kernel_name} ]]; then
 		echo -e "${Info} 内核文件下载成功，开始安装内核..."
+
+		wget -O "${deb_module_name}" "${deb_module_url}"
+
+		dpkg -i ${deb_module_name}
 		dpkg -i ${deb_kernel_name}
+		
 		rm -rf ${deb_kernel_name}
+		rm -rf ${deb_module_name}
 	else
 		echo -e "${Error} 内核文件下载失败，请检查 !" && exit 1
 	fi
