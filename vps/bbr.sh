@@ -124,6 +124,7 @@ function bbrCleanup()
 	deleteOtherKernel
 	update-grub
 	addsysctl
+	(echo 'y') | apt autoremove
 	echo -e "${Tip} 重启VPS后，请重新运行脚本查看BBR是否加载成功，运行命令： ${GreenBack} bash ${file}/bbr.sh status ${FontEnd}"
 	stty erase '^H' && read -p "需要重启VPS后，才能开启BBR，是否现在重启 ? [Y/n] :" yn
 	[[ -z "${yn}" ]] && yn="y"
