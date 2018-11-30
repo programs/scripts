@@ -146,7 +146,7 @@ function bbrinstall()
 {
 	checkRoot
 	getLatestVersion
-	deb_ver=`dpkg -l|grep linux-image | awk '{print $2}' | awk -F '-' '{print $3}' | grep '[4-9].[0-9]*.'`
+	deb_ver=`dpkg -l|grep linux-image | awk '{print $3}' | awk -F '-' '{print $1}' | grep '[4-9].[0-9]*.'`
 	latest_version_2=$(echo "${latest_version}"|grep -o '\.'|wc -l)
 	if [[ "${latest_version_2}" == "1" ]]; then
 		latest_version="${latest_version}.0"
