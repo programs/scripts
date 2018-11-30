@@ -178,7 +178,7 @@ function setupBBR()
 	/home/bin/bbr.sh
 }
 
-function initinstall()
+function exec_install()
 {
 	checkRoot
 	updateSystem
@@ -187,7 +187,14 @@ function initinstall()
 	createSwap
 	setupSsrmu
 	installServices
-	setupBBR
+	setupBBR	
+}
+
+function exec_tip()
+{
+	echo -e '# 1. /etc/ssh/sshd_config -> PasswordAuthentication yes'
+	echo -e '# 2. /usr/local/shadowsocksr/user-config.json -> "dns_ipv6": false,'
+	echo -e '# 3. /home/frp/frps.ini -> dashboard_pwd = A1234567890_frp & privilege_token = L1234567890=frp.'
 }
 
 #主程序入口
@@ -196,11 +203,11 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=install
 case "$action" in
-	install)
-	init${action}
+	install | tip)
+	exec_${action}
 	;;
 	*)
 	echo "输入错误 !"
-	echo "用法: { install }"
+	echo "用法: { install | tip }"
 	;;
 esac
