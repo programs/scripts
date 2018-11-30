@@ -92,7 +92,7 @@ function checkKernelStatus()
 		if [[ "${deb_ver}" == "${latest_version}" ]]; then
 			echo -e "${Info} 检测到 当前内核版本[${deb_ver}] 已满足要求，继续..."
 		else
-			echo -e "${Tip} 检测到 当前内核版本[${deb_ver}] 支持开启BBR但不是最新内核版本，可以使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来升级内核 !(注意：并不是越新的内核越好，4.9 以上版本的内核 目前皆为测试版，不保证稳定性，旧版本如使用无问题 建议不要升级！)"
+			echo -e "${Tip} 检测到 当前内核版本[${deb_ver}] 支持开启BBR但不是最新内核版本，可以使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来升级内核 !(注意：并不是越新的内核越好，不保证稳定性，旧版本如使用无问题 建议不要升级！)"
 		fi
 	else
 		echo -e "${Error} 检测到 当前内核版本[${deb_ver}] 不支持开启BBR，请使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来更换最新内核 !" && exit 1
@@ -190,7 +190,6 @@ function bbrinstall()
 				rm -rf ${deb_module_name}
 			fi
 		fi
-
 		dpkg -i ${deb_kernel_name}
 		rm -rf ${deb_kernel_name}
 	else
