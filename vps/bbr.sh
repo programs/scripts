@@ -36,7 +36,7 @@ function checkSystem()
 
 function setLastNewKernel()
 {
-	echo -e "请输入 要下载安装的Linux内核版本(BBR) [ 格式: x.xx.xx ，例如: 4.9.75 ]
+	echo -e "请输入 要下载安装的Linux内核版本(BBR) [ 格式: x.xx.xx ，例如: 4.9.135 ]
 ${Tip} 内核版本列表请去这里获取：[ http://kernel.ubuntu.com/~kernel-ppa/mainline/ ]
 如果只在乎稳定，那么不需要追求最新版本（新版本不会保证稳定性），可以选择 4.9.XX 稳定版本。"
 	stty erase '^H' && read -p "(默认回车，自动获取最新版本):" latest_version
@@ -88,7 +88,7 @@ function checkKernelStatus()
 		if [[ "${deb_ver}" == "${latest_version}" ]]; then
 			echo -e "${Info} 检测到 当前内核版本[${deb_ver}] 已满足要求，继续..."
 		else
-			echo -e "${Tip} 检测到 当前内核版本[${deb_ver}] 支持开启BBR单不是最新内核版本，可以使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来升级内核 !(注意：并不是越新的内核越好，4.9 以上版本的内核 目前皆为测试版，不保证稳定性，旧版本如使用无问题 建议不要升级！)"
+			echo -e "${Tip} 检测到 当前内核版本[${deb_ver}] 支持开启BBR但不是最新内核版本，可以使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来升级内核 !(注意：并不是越新的内核越好，4.9 以上版本的内核 目前皆为测试版，不保证稳定性，旧版本如使用无问题 建议不要升级！)"
 		fi
 	else
 		echo -e "${Error} 检测到 当前内核版本[${deb_ver}] 不支持开启BBR，请使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来更换最新内核 !" && exit 1
@@ -104,8 +104,11 @@ function deleteOtherKernel()
 		for((integer = 1; integer <= ${deb_total}; integer++))
 		do
 			deb_del=`dpkg -l|grep linux-image | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
+			#deb_del_module=`dpkg -l|grep linux-modules | awk '{print $2}' | grep -v "${latest_version}" | head -${integer}`
+
 			echo -e "${Info} 开始卸载 ${deb_del} 内核..."
 			apt-get purge -y ${deb_del}
+			#[ ! -z "${deb_del_module}" ] && apt-get purge -y ${deb_del_module}
 			echo -e "${Info} 卸载 ${deb_del} 内核卸载完成，继续..."
 		done
 		deb_total=`dpkg -l|grep linux-image | awk '{print $2}' | wc -l`
@@ -175,13 +178,15 @@ function bbrinstall()
 	if [[ -s ${deb_kernel_name} ]]; then
 		echo -e "${Info} 内核文件下载成功，开始安装内核..."
 
+        #某此内核需要modules的支持
 		wget -O "${deb_module_name}" "${deb_module_url}"
+		if [[ -s ${deb_module_name} ]]; then
+		    dpkg -i ${deb_module_name}
+			rm -rf ${deb_module_name}
+		fi
 
-		dpkg -i ${deb_module_name}
 		dpkg -i ${deb_kernel_name}
-		
 		rm -rf ${deb_kernel_name}
-		rm -rf ${deb_module_name}
 	else
 		echo -e "${Error} 内核文件下载失败，请检查 !" && exit 1
 	fi
