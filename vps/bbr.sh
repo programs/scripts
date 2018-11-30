@@ -79,7 +79,7 @@ function getLatestVersion()
 function checkKernelStatus()
 {
 	getLastestKernel
-	deb_ver=`dpkg -l|grep linux-image | awk '{print $2}' | awk -F '-' '{print $3}' | grep '[4-9].[0-9]*.'`
+	deb_ver=`dpkg -l|grep linux-image | awk '{print $3}' | awk -F '-' '{print $1}' | grep '[4-9].[0-9]*.'`
 	latest_version_2=$(echo "${latest_version}"|grep -o '\.'|wc -l)
 	if [[ "${latest_version_2}" == "1" ]]; then
 		latest_version="${latest_version}.0"
@@ -186,7 +186,7 @@ function bbrinstall()
 	fi
 
 	#判断内核是否安装成功
-	deb_ver=`dpkg -l | grep linux-image | awk '{print $2}' | awk -F '-' '{print $3}' | grep "${latest_version}"`
+	deb_ver=`dpkg -l | grep linux-image | awk '{print $3}' | awk -F '-' '{print $1}' | grep "${latest_version}"`
 	if [[ "${deb_ver}" != "" ]]; then
 		echo -e "${Info} 检测到 内核 已安装成功，开始卸载其余内核..."
 		bbrCleanup
