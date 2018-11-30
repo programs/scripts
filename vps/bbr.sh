@@ -38,7 +38,7 @@ function setLastNewKernel()
 {
 	echo -e "请输入 要下载安装的Linux内核版本(BBR) [ 格式: x.xx.xx ，例如: 4.9.135 ]
 ${Tip} 内核版本列表请去这里获取：[ http://kernel.ubuntu.com/~kernel-ppa/mainline/ ]
-如果只在乎稳定，那么不需要追求最新版本（新版本不会保证稳定性），可以选择 4.9.XX 稳定版本。"
+如果只在乎稳定，那么不需要追求最新版本（新版本不保证稳定），可以选择 4.9.XX 稳定版本。"
 	stty erase '^H' && read -p "(默认回车，自动获取最新版本):" latest_version
 	[[ -z "${latest_version}" ]] && getLastestKernel
 	echo
@@ -92,7 +92,8 @@ function checkKernelStatus()
 		if [[ "${deb_ver}" == "${latest_version}" ]]; then
 			echo -e "${Info} 检测到 当前内核版本[${deb_ver}] 已满足要求，继续..."
 		else
-			echo -e "${Tip} 检测到 当前内核版本[${deb_ver}] 支持开启BBR但不是最新内核版本，可以使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来升级内核 !(注意：并不是越新的内核越好，不保证稳定性，旧版本如使用无问题 建议不要升级！)"
+			echo -e "${Tip} 检测到 当前内核版本[${deb_ver}] 支持开启BBR但不是最新内核版本，可以使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来升级内核 !"
+			echo -e "${Tip}       并不是越新的内核越好，不保证其稳定性，旧版本如使用无问题 建议不要升级！"
 		fi
 	else
 		echo -e "${Error} 检测到 当前内核版本[${deb_ver}] 不支持开启BBR，请使用${GreenFont} bash ${file}/bbr.sh ${FontEnd}来更换最新内核 !" && exit 1
