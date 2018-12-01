@@ -403,7 +403,7 @@ function do_frpsecurity()
 function do_sshkeys()
 {
 	username=`whoami`
-	if [ "${username}"="root" ]; then
+	if [ "${username}" == "root" ]; then
 		echo -e "${Tip}请在非ROOT用户环境下执行！" && exit 1
 	fi
 
