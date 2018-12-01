@@ -38,9 +38,53 @@ function checkSystem()
 
 function updateSystem()
 {
-	echo -e "正在更新系统..."
+	echo -e "${Info}正在更新系统..."
 	apt-get update
+	sleep 1s
 	apt-get upgrade -y
+	echo -e "${Info}更新系统完成."
+}
+
+function createUser()
+{
+	echo -e "${Info}请输入 将要创建的用户名"
+	stty erase '^H' && read -p "(回车，默认用户名为adminer):" username
+	[[ -z "${username}" ]] && username='adminer'
+
+	exist_user=`cat /etc/passwd | grep ${username} | awk -F ':' '{print $1}'`
+	if [ ! -z "${exist_user}" ]; then
+
+		useradd -d "/home/${username}" -m -s "/bin/bash" ${username}
+
+		echo -e "${Info}请输入 用户对应的密码"
+		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#888_+):" userpasswd
+		[[ -z "${userpasswd}" ]] && userpasswd='Q1w@23e#888_+'
+		( echo ${userpasswd} ) | passwd ${username}
+
+		usermod -a -G sudo ${username}
+	else
+		echo -e "${Tip}要创建的用户名${GreenBack} ${username} ${FontEnd}已经存在"
+	fi
+}
+
+function installddos()
+{
+	if [ -d '/usr/local/ddos' ]; then
+		echo -e "${Tip}请首先卸载之前的 DDOS 版本"
+	else
+		mkdir /usr/local/ddos
+
+		echo -e "${Info}正在安装 DDOS";
+		wget -q -O /usr/local/ddos/ddos.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.conf
+		wget -q -O /usr/local/ddos/ignore.ip.list https://raw.githubusercontent.com/programs/scripts/master/vps/config/ignore.ip.list
+		wget -q -O /usr/local/ddos/ddos.sh https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.sh
+		chmod 0755 /usr/local/ddos/ddos.sh
+		cp -s /usr/local/ddos/ddos.sh /usr/local/sbin/ddos
+
+		echo -e "${Info}按照默认设置 DDOS 运行任务....."
+		/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
+		echo -e "${Info}DDOS 安装完成."
+	fi
 }
 
 function createSwap()
@@ -81,56 +125,21 @@ function createSwap()
 	fi
 }
 
-function createUser()
+function setupSsrmu()
 {
-	echo -e "请输入 将要创建的用户名"
-	stty erase '^H' && read -p "(回车，默认用户名为adminer):" username
-	[[ -z "${username}" ]] && username='adminer'
+	echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
+	wget -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/gorouter/zeropro/master/shadowsocks-all.sh
+	chmod +x /home/bin/ssrmu.sh
+	/home/bin/ssrmu.sh autoinstall 2>&1 | tee /var/log/startupssr.log
 
-	exist_user=`cat /etc/passwd | grep ${username} | awk -F ':' '{print $1}'`
-	if [ ! -z "${exist_user}" ]; then
-
-		useradd -d "/home/${username}" -m -s "/bin/bash" ${username}
-
-		echo -e "请输入 用户对应的密码"
-		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#888_+):" userpasswd
-		[[ -z "${userpasswd}" ]] && userpasswd='Q1w@23e#888_+'
-		( echo ${userpasswd} ) | passwd ${username}
-
-		usermod -a -G sudo ${username}
-	else
-		echo -e "要创建的用户名${GreenBack} ${username} ${FontEnd}已经存在"
-	fi
-}
-
-function installddos()
-{
-	if [ -d '/usr/local/ddos' ]; then
-		echo; echo; echo -e "${Tip}请首先卸载之前的 DDOS 版本"
-	else
-		mkdir /usr/local/ddos
-
-		echo; echo '正在安装 DDOS'; echo
-		echo; echo -n '正在下载 DDOS 源文件...'
-		wget -q -O /usr/local/ddos/ddos.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.conf
-		echo -n '.'
-		wget -q -O /usr/local/ddos/ignore.ip.list https://raw.githubusercontent.com/programs/scripts/master/vps/config/ignore.ip.list
-		echo -n '.'
-		wget -q -O /usr/local/ddos/ddos.sh https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.sh
-		chmod 0755 /usr/local/ddos/ddos.sh
-		cp -s /usr/local/ddos/ddos.sh /usr/local/sbin/ddos
-		echo '...完成'
-
-		echo; echo -n '按照默认设置 DDOS 运行任务.....'
-		/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
-		echo '.....完成'
-		echo; echo 'DDOS 安装完成.'
-	fi
+	wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
+	/etc/init.d/shadowsocks-r restart
+	echo -e "${Info}SSR 已完成安装，请查看 ${GreenFont}/var/log/startupssr.log ${FontEnd}"
 }
 
 function installServices()
 {
-	echo -e "正在安装系统软件..."
+	echo -e "${Info}正在安装必要的系统软件..."
 	apt-get update && apt-get install -y --no-install-recommends virt-what fail2ban supervisor
 
 	if [ -d /home/bin ]; then
@@ -142,7 +151,7 @@ function installServices()
 		mkdir -p /home/frp
 	fi
 
-	echo -e "正在下载源文件..."
+	echo -e "${Info}正在下载源文件..."
 	wget -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
 	wget -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
 	wget -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
@@ -159,19 +168,7 @@ function installServices()
 	supervisorctl status
 	iptables-restore < /etc/iptables.up.rules
 
-	echo -e "系统软件安装完成."
-}
-
-function setupSsrmu()
-{
-	echo -e "正在安装 SSR (SSR将安装默认设置自动完成) ..."
-	wget -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/gorouter/zeropro/master/shadowsocks-all.sh
-	chmod +x /home/bin/ssrmu.sh
-	/home/bin/ssrmu.sh autoinstall 2>&1 | tee /var/log/startupssr.log
-
-	wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
-	/etc/init.d/shadowsocks-r restart
-	echo -e "SSR 已完成安装，请查看 ${GreenFont}/var/log/startupssr.log ${FontEnd}"
+	echo -e "${Info}系统软件安装完成."
 }
 
 function setupBBR()
