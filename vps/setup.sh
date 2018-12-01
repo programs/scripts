@@ -320,6 +320,9 @@ function do_bbrstatus()
 
 function do_ssrstatus()
 {
+	ipaddr=`curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress`
+	echo -e "${Info}当前IP : ${GreenFont}${ipaddr}${FontEnd}"
+
 	ssr_folder="/usr/local/shadowsocksr"
 	if [[ -e ${ssr_folder} ]]; then
 		PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
@@ -437,7 +440,7 @@ function do_sshkeys()
 		mkdir ~/.ssh
 
 		if [ -d ~/.ssh ]; then
-			echo -e "${Tip}正在配置 SSH KEY 环境..."
+			echo -e "${Tip}正在配置 SSH 授权密钥环境..."
 
 			rm -f ~/.ssh/authorized_keys
 			wget -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
@@ -450,10 +453,30 @@ function do_sshkeys()
 			sudo sed -i "/^PasswordAuthentication/c\PasswordAuthentication no " /etc/ssh/sshd_config
 			sudo service sshd restart
 
-			echo -e "${Info}成功为${GreenFont} ${username} ${FontEnd}设置 SSH authorized keys."
+			echo -e "${Info}成功为${GreenFont} ${username} ${FontEnd}设置 SSH 授权密钥."
 		else
-			echo -e "${Error}为${GreenFont} ${username} ${FontEnd}设置 SSH authorized keys，失败."
+			echo -e "${Error}为${GreenFont} ${username} ${FontEnd}设置 SSH 授权密钥失败."
 		fi
+	else
+		echo -e "${Error}不允许输入的空密码!" && exit 1
+	fi
+}
+
+function do_bansshkey()
+{
+	username=`whoami`
+	if [ "${username}" == "root" ]; then
+		echo -e "${Tip}请在非ROOT用户环境下执行！" && exit 1
+	fi
+
+	stty erase '^H' && read -p "请输入 ${username} 的密码:" userpwd
+	if [ ! -z "${userpwd}" ]; then
+		echo ${userpwd} | sudo -S apt-get update
+
+		sudo sed -i "/^PasswordAuthentication/c\PasswordAuthentication yes" /etc/ssh/sshd_config
+		sudo service sshd restart
+		echo -e "${Info}允许 SSH 登陆不使用授权密钥."
+
 	else
 		echo -e "${Error}不允许输入的空密码!" && exit 1
 	fi
@@ -491,6 +514,9 @@ case "$action" in
 	sshkeys)
 	do_sshkeys
 	;;
+	bansshkey)
+	do_bansshkey
+	;;
 	*)
 	echo " "
 	echo -e "用法: ${GreenFont}${0##*/}${FontEnd} [指令]"
@@ -507,7 +533,8 @@ case "$action" in
 	echo "    editfrp    -- 修改 FRP 配置"
 	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
 	echo "    enableipv6 -- 开关 IPv6"
-	echo "    sshkeys    -- 配置 SSH 授权登陆(须非ROOT用户环境)"
+	echo "    sshkeys    -- 配置 SSH 登陆使用授权密钥 (须非ROOT用户环境)"
+	echo "    bansshkey  -- 允许 SSH 登陆不使用授权密钥 (须非ROOT用户环境)"
 	echo " "
 	;;
 esac
