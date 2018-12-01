@@ -283,7 +283,7 @@ function do_speedtest()
 	wget -q -O /home/bin/superbench.sh https://raw.githubusercontent.com/oooldking/script/master/superbench.sh
 	chmod +x /home/bin/superbench.sh
 
-	stty erase '^H' && read -p "${Info}是否需要进一步进行网络测试 ? [Y/n] :" yn
+	stty erase '^H' && read -p "${Info}是否需要进一步进行网络测试? [Y/n]:" yn
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		/home/bin/superbench.sh
