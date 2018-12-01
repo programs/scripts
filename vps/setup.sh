@@ -4,7 +4,7 @@ export PATH
 LANG=en_US.UTF-8
 
 # 用法
-# wget -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && vps
+# rm -f /usr/bin/vps && wget -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && vps
 #
 GreenFont="\033[32m" && RedFont="\033[31m" && GreenBack="\033[42;37m" && RedBack="\033[41;37m" && FontEnd="\033[0m"
 Info="${GreenFont}[信息]${FontEnd}"
@@ -116,6 +116,10 @@ function installddos()
 		mkdir /usr/local/ddos
 
 		echo -e "${Info}正在安装 DDOS";
+		rf -f /usr/local/ddos/ddos.conf
+		rf -f /usr/local/ddos/ignore.ip.list
+		rf -f /usr/local/ddos/ddos.sh
+
 		wget -q -O /usr/local/ddos/ddos.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.conf
 		wget -q -O /usr/local/ddos/ignore.ip.list https://raw.githubusercontent.com/programs/scripts/master/vps/config/ignore.ip.list
 		wget -q -O /usr/local/ddos/ddos.sh https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.sh
@@ -173,10 +177,12 @@ function setupSsrmu()
 
 	if [ ! -s /usr/local/shadowsocksr/user-config.json ]; then
 		echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
+		rm -f /home/bin/ssrmu.sh
 		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh
 		chmod +x /home/bin/ssrmu.sh
 		/home/bin/ssrmu.sh
 
+		rm -f /usr/local/shadowsocksr/user-config.json
 		wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
 
 		stty erase '^H' && read -p "SSR 是否使用 IPv6 配置? [Y/n] :" yn
@@ -210,6 +216,10 @@ function installFrp()
 		mkdir -p /home/frp
 	fi
 
+	rm -f /home/frp/frps
+	rm -f /home/frp/frpstart
+	rm -f /home/frp/frps.ini
+
 	wget -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
 	wget -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
 	wget -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
@@ -235,6 +245,11 @@ function setupServices()
 	sleep 1s
 	echo -e "${Info}正在下载源文件..."
 	
+	rm -f /etc/ssh/sshd_config
+	rm -f /etc/fail2ban/jail.conf
+	rm -f /etc/supervisor/conf.d/frp.conf
+	rm -f /etc/iptables.up.rules
+
 	wget -q -O /etc/ssh/sshd_config https://raw.githubusercontent.com/programs/scripts/master/vps/config/sshd_config
 	wget -q -O /etc/fail2ban/jail.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/jail.conf
 	wget -q -O /etc/supervisor/conf.d/frp.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/frp.conf
@@ -255,6 +270,7 @@ function setupServices()
 function setupBBR()
 {
 	if [ ! -f /home/bin/bbr.sh ]; then
+		rm -f /home/bin/bbr.sh
 		wget -q -O /home/bin/bbr.sh https://raw.githubusercontent.com/programs/scripts/master/vps/bbr.sh
 		chmod +x /home/bin/bbr.sh
 	fi
@@ -276,10 +292,12 @@ function do_install()
 
 function do_speedtest()
 {
+	rm -f /home/bin/zbanch.sh
 	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh https://raw.githubusercontent.com/FunctionClub/ZBench/master/ZBench-CN.sh
 	chmod +x /home/bin/zbanch.sh
 	/home/bin/zbanch.sh
 
+	rm -f /home/bin/superbench.sh
 	wget -q -O /home/bin/superbench.sh https://raw.githubusercontent.com/oooldking/script/master/superbench.sh
 	chmod +x /home/bin/superbench.sh
 
@@ -293,6 +311,7 @@ function do_speedtest()
 function do_bbrstatus()
 {
 	if [ ! -f /home/bin/bbr.sh ]; then
+		rm -f /home/bin/bbr.sh
 		wget -q -O /home/bin/bbr.sh https://raw.githubusercontent.com/programs/scripts/master/vps/bbr.sh
 		chmod +x /home/bin/bbr.sh
 	fi
@@ -410,12 +429,16 @@ function do_sshkeys()
 	stty erase '^H' && read -p "请输入${GreenFont} ${username} ${FontEnd}的密码:" userpwd
 	if [ ! -z "${userpwd}" ]; then
 		echo ${userpwd} | sudo -S apt-get update
+
+		rm -f ~/.ssh/known_hosts
 		address=`curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress`
 		sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
 		echo 'yes' | sudo ssh root@${address} -p ${sshPort} 
 
 		if [ -d ~/.ssh ]; then
 			echo -e "${Tip}正在配置 SSH KEY 环境..."
+
+			rm -f ~/.ssh/authorized_keys
 			wget -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
 			
 			sudo chmod 400 ~/.ssh/authorized_keys
