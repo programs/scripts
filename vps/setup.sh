@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/home/bin:~/bin
 export PATH
+LANG=en_US.UTF-8
 
-# wget https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x setup.sh && bash setup.sh
-
+# 用法
+# wget -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && vps
+#
 GreenFont="\033[32m" && RedFont="\033[31m" && GreenBack="\033[42;37m" && RedBack="\033[41;37m" && FontEnd="\033[0m"
 Info="${GreenFont}[信息]${FontEnd}"
 Error="${RedFont}[错误]${FontEnd}"
@@ -16,7 +18,7 @@ function checkRoot()
 	[[ $EUID != 0 ]] && echo -e "${Error} 当前账号非ROOT(或没有ROOT权限)，无法继续操作，请使用${GreenBack} sudo su ${FontEnd}来获取临时ROOT权限（执行后会提示输入当前账号的密码）。" && exit 1
 }
 
-#检查系统
+# 检查系统类型
 function checkSystem()
 {
 	if [[ -f /etc/redhat-release ]]; then
@@ -36,12 +38,20 @@ function checkSystem()
     fi
 }
 
-function modifyRoot()
+function configRoot()
 {
 	if [ ! -f ~/rootdone ]; then 
+
+		locale-gen en_US.UTF-8
+		dpkg-reconfigure locales
+
+		rm -rf /etc/localtime
+		ln -s /usr/share/zoneinfo/Asia/Hong_Kong /etc/localtime 
+
+		defaultpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 16`
 		echo -e "${Info}请修改ROOT密码"
-		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#888_+):" rootpasswd
-		[[ -z "${rootpasswd}" ]] && rootpasswd='Q1w@23e#888_+'
+		stty erase '^H' && read -p "(回车，默认密码为 ${defaultpwd}):" rootpasswd
+		[[ -z "${rootpasswd}" ]] && rootpasswd=${defaultpwd}
 
 		#echo "${rootpasswd}" | passwd root --stdin > /dev/null 2>&1
 		echo root:${rootpasswd} | chpasswd
@@ -51,6 +61,7 @@ function modifyRoot()
 	if [ ! -d /home/bin ]; then
 		rm -rf /home/bin
 		mkdir -p /home/bin
+		echo "export PATH=$PATH:/home/bin" >> ~/.bashrc
 	fi
 	if [ ! -d /home/frp ]; then
 		rm -rf /home/frp
@@ -60,11 +71,15 @@ function modifyRoot()
 
 function updateSystem()
 {
-	echo -e "${Info}正在更新系统..."
 	apt-get update
-	sleep 1s
-	apt-get upgrade -y
-	echo -e "${Info}更新系统完成."
+	
+	stty erase '^H' && read -p "是否需要更新系统 ? [Y/n] :" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		echo -e "${Info}正在更新系统..."
+		apt-get upgrade -y
+		echo -e "${Info}更新系统完成."
+	fi
 }
 
 function createUser()
@@ -78,13 +93,16 @@ function createUser()
 
 		useradd -d "/home/${username}" -m -s "/bin/bash" ${username}
 
+		userdefpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 16`
 		echo -e "${Info}请输入 用户对应的密码"
-		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#666_+):" userpasswd
-		[[ -z "${userpasswd}" ]] && userpasswd='Q1w@23e#666_+'
+		stty erase '^H' && read -p "(回车，默认密码为 ${userdefpwd}):" userpasswd
+		[[ -z "${userpasswd}" ]] && userpasswd=${userdefpwd}
 		#echo "${userpasswd}" | passwd ${username} --stdin > /dev/null 2>&1
 		echo ${username}:${userpasswd} | chpasswd
 
 		usermod -a -G sudo ${username}
+		echo "export PATH=$PATH:/home/bin" >> /home/${username}/.bashrc
+
 	else
 		echo -e "${Tip}要创建的用户名${GreenBack} ${username} ${FontEnd}已经存在"
 	fi
@@ -134,12 +152,13 @@ function createSwap()
 		fi
 
 		bcount=`expr ${ssize} / ${bsize}`
-		dd if=/dev/zero of=/swapfile bs=${bsize}M count=${bcount}
-		ls -lh /swapfile
-		chmod 600 /swapfile
-		mkswap /swapfile
-		swapon /swapfile
-		echo "/swap none swap sw 0 0" >> /etc/fstab
+		swapfile='/swapdisk'
+		dd if=/dev/zero of=${swapfile} bs=${bsize}M count=${bcount}
+		ls -lh ${swapfile}
+		chmod 600 ${swapfile}
+		mkswap ${swapfile}
+		swapon ${swapfile}
+		echo "${swapfile}    swap    swap    defaults    0 0" >> /etc/fstab
 
 		swap_size=$( free -m | awk '/Swap/ {print $2}' )
 		echo -e "${Info}创建交换分区完成，大小为${GreenFont} ${swap_size}M ${FontEnd}"
@@ -197,15 +216,16 @@ function installServices()
 
 function setupBBR()
 {
-	wget -q -O /home/bin/bbr.sh https://raw.githubusercontent.com/programs/scripts/master/vps/bbr.sh
-	chmod +x /home/bin/bbr.sh
+	if [ ! -f /home/bin/bbr.sh ]; then
+		wget -q -O /home/bin/bbr.sh https://raw.githubusercontent.com/programs/scripts/master/vps/bbr.sh
+		chmod +x /home/bin/bbr.sh
+	fi
 	/home/bin/bbr.sh
 }
 
-function initinstall()
+function do_install()
 {
-	checkRoot
-	modifyRoot
+	configRoot
 	updateSystem
 	createUser
 	installddos
@@ -215,17 +235,156 @@ function initinstall()
 	setupBBR
 }
 
+function do_speedtest()
+{
+	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh https://raw.githubusercontent.com/FunctionClub/ZBench/master/ZBench-CN.sh
+	chmod +x /home/bin/zbanch.sh
+	/home/bin/zbanch.sh
+
+	wget -q -O /home/bin/superbench.sh https://raw.githubusercontent.com/oooldking/script/master/superbench.sh
+	chmod +x /home/bin/superbench.sh
+
+	stty erase '^H' && read -p "是否需要进一步进行网络测试 ? [Y/n] :" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		/home/bin/superbench.sh
+	fi
+}
+
+function do_bbrstatus()
+{
+	if [ ! -f /home/bin/bbr.sh ]; then
+		wget -q -O /home/bin/bbr.sh https://raw.githubusercontent.com/programs/scripts/master/vps/bbr.sh
+		chmod +x /home/bin/bbr.sh
+	fi
+	/home/bin/bbr.sh status
+}
+
+function do_ssrstatus()
+{
+	ssr_folder="/usr/local/shadowsocksr"
+	if [[ -e ${ssr_folder} ]]; then
+		PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
+		if [[ ! -z "${PID}" ]]; then
+			echo -e " 当前状态: ${GreenFont}已安装${FontEnd} 并 ${GreenFont}已启动${FontEnd}"
+		else
+			echo -e " 当前状态: ${GreenFont}已安装${FontEnd} 但 ${RedFont}未启动${FontEnd}"
+		fi
+	else
+		echo -e " 当前状态: ${RedFont}未安装${FontEnd}"
+	fi
+}
+
+function do_upgrade() { 
+	updateSystem
+}
+function do_adduser() {
+	createUser
+}
+
+function do_iptable()
+{
+	vim /etc/iptables.up.rules
+	stty erase '^H' && read -p "是否使防火墙立即生效 ? [Y/n] :" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		iptables-restore < /etc/iptables.up.rules
+	fi
+}
+
+function do_editfrp()
+{
+	vim /home/frp/frps.ini
+	stty erase '^H' && read -p "是否使FRP立即生效 ? [Y/n] :" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		systemctl restart supervisor
+	fi
+}
+
+function do_configssh()
+{
+	sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
+	echo -e "${Info}当前 SSH 端口号:${GreenFont} ${sshPort} ${FontEnd}"
+
+	stty erase '^H' && read -p "是否需要手动配置 SSH ? [Y/n] :" ynt
+	[[ -z "${ynt}" ]] && ynt="y"
+	if [[ $ynt == [Yy] ]]; then
+
+		vim /etc/ssh/sshd_config
+		stty erase '^H' && read -p "是否使SSH立即生效 ? [Y/n] :" yn
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			service sshd restart
+		fi
+	fi
+}
+
+function do_security()
+{
+	echo -e "${Info}服务器上所有的关于每个IP的连接数:"
+	iplink_count=`netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n`
+	echo -n "${iplink_count}"
+
+	echo -e "${Info}尝试暴力破解机器密码的人:"
+	pjman=`grep "Failed password for root" /var/log/auth.log | awk '{print $11}' | sort | uniq -c | sort -nr | more`
+	echo -n "${pjman}"
+
+	echo -e "${Info}暴力猜用户名的人:"
+	blpjman=`grep "Failed password for invalid user" /var/log/auth.log | awk '{print $13}' | sort | uniq -c | sort -nr | more`
+	echo -n "${blpjman}"
+}
+
+function do_sshkeys()
+{
+	username=`whoami`
+	if [ "${username}"="root" ]; then
+		echo -e "${Tip}请在非ROOT用户环境下执行！" && exit 1
+	fi
+
+	stty erase '^H' && read -p "${Info}请输入${GreenFont} ${username} ${FontEnd}的密码:" userpwd
+	if [ ! -z "${userpwd}" ]; then
+		echo ${userpwd} | sudo -S apt-get update
+		address=`curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress`
+		sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
+		echo 'yes' | sudo ssh root@${address} -p ${sshPort} 
+
+		if [ -d ~/.ssh ]; then
+			echo -e "${Tip}正在配置 SSH KEY 环境..."
+			wget -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
+			
+			sudo chmod 400 ~/.ssh/authorized_keys
+			sudo chattr +i ~/.ssh/authorized_keys
+			sudo chattr +i ~/.ssh
+
+			#PasswordAuthentication yes
+			sudo sed -i "/^PasswordAuthentication/c\PasswordAuthentication no " /etc/ssh/sshd_config
+			sudo service sshd restart
+
+			echo -e "${Info}成功为${GreenFont} ${username} ${FontEnd}设置 SSH authorized keys."
+		else
+			echo -e "${Error}为${GreenFont} ${username} ${FontEnd}设置 SSH authorized keys，失败."
+		fi
+	else
+		echo -e "${Error}不允许输入的空密码!" && exit 1
+	fi
+}
+
 #主程序入口
 checkSystem
 [[ ${release} != "debian" ]] && [[ ${release} != "ubuntu" ]] && echo -e "${Error} 本脚本不支持当前系统 ${release} !" && exit 1
 action=$1
 [[ -z $1 ]] && action=install
 case "$action" in
-	install)
-	init${action}
+	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | security | editfrp)
+	checkRoot
+	do_${action}
+	;;
+	sshkeys)
+	do_sshkeys
 	;;
 	*)
 	echo "输入错误 !"
-	echo "用法: { install }"
+	echo "用法: { install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | security | editfrp | sshkeys}"
 	;;
 esac
