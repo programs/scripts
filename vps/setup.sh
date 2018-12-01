@@ -73,8 +73,8 @@ function updateSystem()
 {
 	apt-get update
 	
-	stty erase '^H' && read -p "是否需要更新系统 ? [Y/n] :" yn
-	[[ -z "${yn}" ]] && yn="y"
+	stty erase '^H' && read -p "是否需要更新系统 ? [y/N] :" yn
+	[[ -z "${yn}" ]] && yn="n"
 	if [[ $yn == [Yy] ]]; then
 		echo -e "${Info}正在更新系统..."
 		apt-get upgrade -y
