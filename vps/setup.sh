@@ -169,6 +169,8 @@ function createSwap()
 
 function setupSsrmu()
 {
+	apt-get install -y --no-install-recommends jq
+
 	if [ ! -s /usr/local/shadowsocksr/user-config.json ]; then
 		echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
 		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh
@@ -176,13 +178,52 @@ function setupSsrmu()
 		/home/bin/ssrmu.sh
 
 		wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
+
+		stty erase '^H' && read -p "SSR 是否使用 IPv6 配置? [Y/n] :" yn
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			ipv6flag='true'
+			#/usr/local/shadowsocksr/user-config.json -> "dns_ipv6": false,
+			cat /usr/local/shadowsocksr/user-config.json |
+				jq 'to_entries | 
+					map(if .key == "dns_ipv6" 
+						then . + {"value":'${ipv6flag}'} 
+						else . 
+						end
+						) | 
+					from_entries'
+		fi
 		echo -e "${Info}SSR 已完成安装."
 	else
 		echo -e "${Info}SSR 已安装."
 	fi
 }
 
-function installServices()
+function installFrp()
+{
+	echo -e "${Info}正在安装 FRP ..."
+
+	if [ ! -d /home/frp ]; then
+		mkdir -p /home/frp
+	fi
+
+	wget -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
+	wget -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
+	wget -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
+
+	if [ -f /home/frp/frps.ini ]; then
+
+		chmod +x /home/frp/frps
+		chmod +x /home/frp/frpstart
+		echo -e "${Info}FRP 安装完成."
+
+		do_frpsecurity
+	else
+		echo -e "${Error}FRP 安装出错."
+	fi 
+}
+
+function setupServices()
 {
 	sleep 1s
 	echo -e "${Info}正在安装必要的系统软件..."
@@ -190,13 +231,7 @@ function installServices()
 
 	sleep 1s
 	echo -e "${Info}正在下载源文件..."
-	wget -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
-	wget -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
-	wget -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
-
-	chmod +x /home/frp/frps
-	chmod +x /home/frp/frpstart
-
+	
 	wget -q -O /etc/ssh/sshd_config https://raw.githubusercontent.com/programs/scripts/master/vps/config/sshd_config
 	wget -q -O /etc/fail2ban/jail.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/jail.conf
 	wget -q -O /etc/supervisor/conf.d/frp.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/frp.conf
@@ -223,11 +258,7 @@ function setupBBR()
 	/home/bin/bbr.sh
 }
 
-<<<<<<< HEAD
 function do_install()
-=======
-function exec_install()
->>>>>>> 579d84753647e5b3449609ccd5ce8f0083ddf857
 {
 	configRoot
 	updateSystem
@@ -235,15 +266,9 @@ function exec_install()
 	installddos
 	createSwap
 	setupSsrmu
-	installServices
+	installFrp
+	setupServices
 	setupBBR	
-}
-
-function exec_tip()
-{
-	echo -e '# 1. /etc/ssh/sshd_config -> PasswordAuthentication yes'
-	echo -e '# 2. /usr/local/shadowsocksr/user-config.json -> "dns_ipv6": false,'
-	echo -e '# 3. /home/frp/frps.ini -> dashboard_pwd = A1234567890_frp & privilege_token = L1234567890=frp.'
 }
 
 function do_speedtest()
@@ -331,7 +356,7 @@ function do_configssh()
 	fi
 }
 
-function do_security()
+function do_qsecurity()
 {
 	echo -e "${Info}服务器上所有的关于每个IP的连接数:"
 	iplink_count=`netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n`
@@ -344,6 +369,32 @@ function do_security()
 	echo -e "${Info}暴力猜用户名的人:"
 	blpjman=`grep "Failed password for invalid user" /var/log/auth.log | awk '{print $13}' | sort | uniq -c | sort -nr | more`
 	echo -n "${blpjman}"
+}
+
+function do_frpsecurity()
+{
+	stty erase '^H' && read -p "是否需要设置 FRP 面板密码及其访问命牌? [Y/n] :" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		
+		dashboardrand=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
+		stty erase '^H' && read -p "${Tip}请输入 FRP 面板密码:" dashboardpwd
+		[[ -z "${dashboardpwd}" ]] && dashboardpwd=${dashboardrand}
+
+		privilegetokenrand=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
+		stty erase '^H' && read -p "${Tip}请输入 FRP 访问命牌:" privilegetoken
+		[[ -z "${privilegetoken}" ]] && privilegetoken=${privilegetokenrand}
+		
+	else
+		dashboardpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
+		privilegetoken=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
+	fi
+	sed -i "/^dashboard_pwd/c\dashboard_pwd = ${dashboardpwd}" /home/frp/frps.ini
+	sed -i "/^privilege_token/c\privilege_token = ${privilegetoken}" /home/frp/frps.ini
+	systemctl restart supervisor
+
+	echo -e "${Tip}当前 FRP 面板密码:${GreenFont} ${dashboardpwd} ${FontEnd}"
+	echo -e "${Tip}当前 FRP 访问命牌:${GreenFont} ${privilegetoken} ${FontEnd}"
 }
 
 function do_sshkeys()
@@ -387,8 +438,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=install
 case "$action" in
-<<<<<<< HEAD
-	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | security | editfrp)
+	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | qsecurity | editfrp | frpsecurity)
 	checkRoot
 	do_${action}
 	;;
@@ -397,18 +447,6 @@ case "$action" in
 	;;
 	*)
 	echo "输入错误 !"
-	echo "用法: { install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | security | editfrp | sshkeys}"
-=======
-	install | tip)
-	exec_${action}
-	;;
-	upgrade)
-	checkRoot
-	updateSystem
-	;;
-	*)
-	echo "输入错误 !"
-	echo "用法: { install | tip | upgrade }"
->>>>>>> 579d84753647e5b3449609ccd5ce8f0083ddf857
+	echo "用法: { install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | qsecurity | editfrp | frpsecurity | sshkeys}"
 	;;
 esac
