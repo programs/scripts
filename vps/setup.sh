@@ -36,6 +36,14 @@ function checkSystem()
     fi
 }
 
+function modifyRoot()
+{
+	echo -e "${Info}请修改ROOT密码"
+	stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#888_+):" rootpasswd
+	[[ -z "${rootpasswd}" ]] && rootpasswd='Q1w@23e#888_+'
+	( echo ${rootpasswd} ) | passwd
+}
+
 function updateSystem()
 {
 	echo -e "${Info}正在更新系统..."
@@ -57,8 +65,8 @@ function createUser()
 		useradd -d "/home/${username}" -m -s "/bin/bash" ${username}
 
 		echo -e "${Info}请输入 用户对应的密码"
-		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#888_+):" userpasswd
-		[[ -z "${userpasswd}" ]] && userpasswd='Q1w@23e#888_+'
+		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#666_+):" userpasswd
+		[[ -z "${userpasswd}" ]] && userpasswd='Q1w@23e#666_+'
 		( echo ${userpasswd} ) | passwd ${username}
 
 		usermod -a -G sudo ${username}
