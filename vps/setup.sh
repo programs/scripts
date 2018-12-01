@@ -2,6 +2,8 @@
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/home/bin:~/bin
 export PATH
 
+# wget https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x setup.sh && bash setup.sh
+
 GreenFont="\033[32m" && RedFont="\033[31m" && GreenBack="\033[42;37m" && RedBack="\033[41;37m" && FontEnd="\033[0m"
 Info="${GreenFont}[信息]${FontEnd}"
 Error="${RedFont}[错误]${FontEnd}"
@@ -37,7 +39,8 @@ function checkSystem()
 function updateSystem()
 {
 	echo -e "正在更新系统..."
-	apt-get update && apt-get upgrade -y
+	apt-get update
+	apt-get upgrade -y
 }
 
 function createSwap()
