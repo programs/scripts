@@ -363,15 +363,15 @@ function do_qsecurity()
 {
 	echo -e "${Info}服务器上所有的关于每个IP的连接数:"
 	iplink_count=`netstat -ntu | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n`
-	echo -n "${iplink_count}"
+	echo -e "${iplink_count}"
 
 	echo -e "${Info}尝试暴力破解机器密码的人:"
 	pjman=`grep "Failed password for root" /var/log/auth.log | awk '{print $11}' | sort | uniq -c | sort -nr | more`
-	echo -n "${pjman}"
+	echo -e "${pjman}"
 
 	echo -e "${Info}暴力猜用户名的人:"
 	blpjman=`grep "Failed password for invalid user" /var/log/auth.log | awk '{print $13}' | sort | uniq -c | sort -nr | more`
-	echo -n "${blpjman}"
+	echo -e "${blpjman}"
 }
 
 function do_frpsecurity()
