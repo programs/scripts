@@ -38,10 +38,24 @@ function checkSystem()
 
 function modifyRoot()
 {
-	echo -e "${Info}请修改ROOT密码"
-	stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#888_+):" rootpasswd
-	[[ -z "${rootpasswd}" ]] && rootpasswd='Q1w@23e#888_+'
-	( echo ${rootpasswd} ) | passwd
+	if [ ! -f ~/rootdone ]; then 
+		echo -e "${Info}请修改ROOT密码"
+		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#888_+):" rootpasswd
+		[[ -z "${rootpasswd}" ]] && rootpasswd='Q1w@23e#888_+'
+
+		#echo "${rootpasswd}" | passwd root --stdin > /dev/null 2>&1
+		echo root:${rootpasswd} | chpasswd
+		touch ~/rootdone
+	fi
+
+	if [ ! -d /home/bin ]; then
+		rm -rf /home/bin
+		mkdir -p /home/bin
+	fi
+	if [ ! -d /home/frp ]; then
+		rm -rf /home/frp
+		mkdir -p /home/frp
+	fi
 }
 
 function updateSystem()
@@ -60,14 +74,15 @@ function createUser()
 	[[ -z "${username}" ]] && username='adminer'
 
 	exist_user=`cat /etc/passwd | grep ${username} | awk -F ':' '{print $1}'`
-	if [ ! -z "${exist_user}" ]; then
+	if [ -z "${exist_user}" ]; then
 
 		useradd -d "/home/${username}" -m -s "/bin/bash" ${username}
 
 		echo -e "${Info}请输入 用户对应的密码"
 		stty erase '^H' && read -p "(回车，默认密码为Q1w@23e#666_+):" userpasswd
 		[[ -z "${userpasswd}" ]] && userpasswd='Q1w@23e#666_+'
-		( echo ${userpasswd} ) | passwd ${username}
+		#echo "${userpasswd}" | passwd ${username} --stdin > /dev/null 2>&1
+		echo ${username}:${userpasswd} | chpasswd
 
 		usermod -a -G sudo ${username}
 	else
@@ -78,7 +93,7 @@ function createUser()
 function installddos()
 {
 	if [ -d '/usr/local/ddos' ]; then
-		echo -e "${Tip}请首先卸载之前的 DDOS 版本"
+		echo -e "${Tip}DDOS 已经安装，若要重新安装请首先卸载之前的 DDOS 版本."
 	else
 		mkdir /usr/local/ddos
 
@@ -135,34 +150,33 @@ function createSwap()
 
 function setupSsrmu()
 {
-	echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
-	wget -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/gorouter/zeropro/master/shadowsocks-all.sh
-	chmod +x /home/bin/ssrmu.sh
-	/home/bin/ssrmu.sh autoinstall 2>&1 | tee /var/log/startupssr.log
+	if [ ! -s /usr/local/shadowsocksr/user-config.json ]; then
+		echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
+		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh
+		chmod +x /home/bin/ssrmu.sh
+		/home/bin/ssrmu.sh
 
-	wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
-	/etc/init.d/shadowsocks-r restart
-	echo -e "${Info}SSR 已完成安装，请查看 ${GreenFont}/var/log/startupssr.log ${FontEnd}"
+		wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
+		echo -e "${Info}SSR 已完成安装."
+	else
+		echo -e "${Info}SSR 已安装."
+	fi
 }
 
 function installServices()
 {
+	sleep 1s
 	echo -e "${Info}正在安装必要的系统软件..."
-	apt-get update && apt-get install -y --no-install-recommends virt-what fail2ban supervisor
+	apt-get install -y --no-install-recommends virt-what fail2ban supervisor
 
-	if [ -d /home/bin ]; then
-		rm -rf /home/bin
-		mkdir -p /home/bin
-	fi
-	if [ -d /home/frp ]; then
-		rm -rf /home/frp
-		mkdir -p /home/frp
-	fi
-
+	sleep 1s
 	echo -e "${Info}正在下载源文件..."
 	wget -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
 	wget -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
 	wget -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
+
+	chmod +x /home/frp/frps
+	chmod +x /home/frp/frpstart
 
 	wget -q -O /etc/ssh/sshd_config https://raw.githubusercontent.com/programs/scripts/master/vps/config/sshd_config
 	wget -q -O /etc/fail2ban/jail.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/jail.conf
@@ -171,8 +185,10 @@ function installServices()
 
 	service sshd restart
 	service fail2ban restart
+	sleep 1s
 	fail2ban-client status
 	systemctl restart supervisor
+	sleep 1s
 	supervisorctl status
 	iptables-restore < /etc/iptables.up.rules
 
@@ -189,6 +205,7 @@ function setupBBR()
 function initinstall()
 {
 	checkRoot
+	modifyRoot
 	updateSystem
 	createUser
 	installddos
