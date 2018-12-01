@@ -426,14 +426,15 @@ function do_sshkeys()
 		echo -e "${Tip}请在非ROOT用户环境下执行！" && exit 1
 	fi
 
-	stty erase '^H' && read -p "请输入${GreenFont} ${username} ${FontEnd}的密码:" userpwd
+	stty erase '^H' && read -p "请输入 ${username} 的密码:" userpwd
 	if [ ! -z "${userpwd}" ]; then
 		echo ${userpwd} | sudo -S apt-get update
 
-		rm -f ~/.ssh/known_hosts
-		address=`curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress`
-		sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
-		echo 'yes' | sudo ssh root@${address} -p ${sshPort} 
+		#rm -f ~/.ssh/known_hosts
+		#address=`curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress`
+		#sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
+		#echo 'yes' | sudo ssh root@${address} -p ${sshPort} 
+		mkdir ~/.ssh
 
 		if [ -d ~/.ssh ]; then
 			echo -e "${Tip}正在配置 SSH KEY 环境..."
