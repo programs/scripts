@@ -469,7 +469,7 @@ case "$action" in
 	;;
 	*)
 	echo " "
-	echo "用法: ${GreenFont}${file}${FontEnd} [指令]"
+	echo -e "用法: ${GreenFont}${file}${FontEnd} [指令]"
 	echo "指令:"
 	echo "    install    -- 安装并初始化VPS环境"
 	echo "    speedtest  -- 测试网络速度"
