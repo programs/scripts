@@ -192,6 +192,9 @@ function setupSsrmu()
 						end
 						) | 
 					from_entries'
+			
+			rm -f /etc/sysctl.d/99-ubuntu-ipv6.conf
+			service procps reload
 		fi
 		echo -e "${Info}SSR 已完成安装."
 	else
@@ -432,13 +435,32 @@ function do_sshkeys()
 	fi
 }
 
+function do_enableipv6()
+{
+	stty erase '^H' && read -p "是否禁用 IPv6 ? [y/N] :" yn
+	[[ -z "${yn}" ]] && yn="n"
+	if [[ $yn == [Yy] ]]; then
+
+echo "net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1" | tee /etc/sysctl.d/99-ubuntu-ipv6.conf
+		service procps reload
+		echo -e "${Tip}已禁用 IPv6."
+		
+	else
+		rm -f /etc/sysctl.d/99-ubuntu-ipv6.conf
+		service procps reload
+		echo -e "${Tip}已删除 IPv6 的禁用!"
+	fi
+}
+
 #主程序入口
 checkSystem
 [[ ${release} != "debian" ]] && [[ ${release} != "ubuntu" ]] && echo -e "${Error} 本脚本不支持当前系统 ${release} !" && exit 1
 action=$1
-[[ -z $1 ]] && action=install
+[[ -z $1 ]] && action=help
 case "$action" in
-	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | qsecurity | editfrp | frpsecurity)
+	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6)
 	checkRoot
 	do_${action}
 	;;
@@ -446,7 +468,22 @@ case "$action" in
 	do_sshkeys
 	;;
 	*)
-	echo "输入错误 !"
-	echo "用法: { install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | qsecurity | editfrp | frpsecurity | sshkeys}"
+	echo " "
+	echo "用法: ${GreenFont}${file}${FontEnd} [指令]"
+	echo "指令:"
+	echo "    install    -- 安装并初始化VPS环境"
+	echo "    speedtest  -- 测试网络速度"
+	echo "    bbrstatus  -- 查看 BBR 状态"
+	echo "    ssrstatus  -- 查看 SSR 状态"
+	echo "    sysupgrade -- 系统更新"
+	echo "    adduser    -- 新增用户"
+	echo "    iptable    -- 修改防火墙"
+	echo "    configssh  -- 修改 SSH 配置"
+	echo "    qsecurity  -- 查询本地安全信息"
+	echo "    editfrp    -- 修改 FRP 配置"
+	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
+	echo "    enableipv6 -- 开关 IPv6"
+	echo "    sshkeys    -- 配置 SSH 授权登陆(须非ROOT用户环境)"
+	echo " "
 	;;
 esac
