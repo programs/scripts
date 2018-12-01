@@ -73,7 +73,7 @@ function updateSystem()
 {
 	apt-get update
 	
-	stty erase '^H' && read -p "是否需要更新系统 ? [Y/n] :" yn
+	stty erase '^H' && read -p "${Info}是否需要更新系统 ? [Y/n] :" yn
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		echo -e "${Info}正在更新系统..."
@@ -179,7 +179,7 @@ function setupSsrmu()
 
 		wget -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
 
-		stty erase '^H' && read -p "SSR 是否使用 IPv6 配置? [Y/n] :" yn
+		stty erase '^H' && read -p "${Info}SSR 是否使用 IPv6 配置? [Y/n] :" yn
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			ipv6flag='true'
@@ -283,7 +283,7 @@ function do_speedtest()
 	wget -q -O /home/bin/superbench.sh https://raw.githubusercontent.com/oooldking/script/master/superbench.sh
 	chmod +x /home/bin/superbench.sh
 
-	stty erase '^H' && read -p "是否需要进一步进行网络测试 ? [Y/n] :" yn
+	stty erase '^H' && read -p "${Info}是否需要进一步进行网络测试 ? [Y/n] :" yn
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		/home/bin/superbench.sh
@@ -305,12 +305,12 @@ function do_ssrstatus()
 	if [[ -e ${ssr_folder} ]]; then
 		PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
 		if [[ ! -z "${PID}" ]]; then
-			echo -e " 当前状态: ${GreenFont}已安装${FontEnd} 并 ${GreenFont}已启动${FontEnd}"
+			echo -e "${Info}当前状态: ${GreenFont}已安装${FontEnd} 并 ${GreenFont}已启动${FontEnd}"
 		else
-			echo -e " 当前状态: ${GreenFont}已安装${FontEnd} 但 ${RedFont}未启动${FontEnd}"
+			echo -e "${Info}当前状态: ${GreenFont}已安装${FontEnd} 但 ${RedFont}未启动${FontEnd}"
 		fi
 	else
-		echo -e " 当前状态: ${RedFont}未安装${FontEnd}"
+		echo -e "${Info}当前状态: ${RedFont}未安装${FontEnd}"
 	fi
 }
 
@@ -324,7 +324,7 @@ function do_adduser() {
 function do_iptable()
 {
 	vim /etc/iptables.up.rules
-	stty erase '^H' && read -p "是否使防火墙立即生效 ? [Y/n] :" yn
+	stty erase '^H' && read -p "${Info}是否使防火墙立即生效 ? [Y/n] :" yn
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		iptables-restore < /etc/iptables.up.rules
@@ -334,7 +334,7 @@ function do_iptable()
 function do_editfrp()
 {
 	vim /home/frp/frps.ini
-	stty erase '^H' && read -p "是否使FRP立即生效 ? [Y/n] :" yn
+	stty erase '^H' && read -p "${Info}是否使FRP立即生效 ? [Y/n] :" yn
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		systemctl restart supervisor
@@ -346,12 +346,12 @@ function do_configssh()
 	sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
 	echo -e "${Info}当前 SSH 端口号:${GreenFont} ${sshPort} ${FontEnd}"
 
-	stty erase '^H' && read -p "是否需要手动配置 SSH ? [Y/n] :" ynt
+	stty erase '^H' && read -p "${Info}是否需要手动配置 SSH ? [Y/n] :" ynt
 	[[ -z "${ynt}" ]] && ynt="y"
 	if [[ $ynt == [Yy] ]]; then
 
 		vim /etc/ssh/sshd_config
-		stty erase '^H' && read -p "是否使SSH立即生效 ? [Y/n] :" yn
+		stty erase '^H' && read -p "${Info}是否使SSH立即生效 ? [Y/n] :" yn
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			service sshd restart
@@ -376,7 +376,7 @@ function do_qsecurity()
 
 function do_frpsecurity()
 {
-	stty erase '^H' && read -p "是否需要设置 FRP 面板密码及其访问命牌? [Y/n] :" yn
+	stty erase '^H' && read -p "${Info}是否需要设置 FRP 面板密码及其访问命牌? [Y/n] :" yn
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		
@@ -437,7 +437,7 @@ function do_sshkeys()
 
 function do_enableipv6()
 {
-	stty erase '^H' && read -p "是否禁用 IPv6 ? [y/N] :" yn
+	stty erase '^H' && read -p "${Info}是否禁用 IPv6 ? [y/N] :" yn
 	[[ -z "${yn}" ]] && yn="n"
 	if [[ $yn == [Yy] ]]; then
 
