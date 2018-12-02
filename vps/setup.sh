@@ -340,6 +340,10 @@ function do_bbrstatus()
 
 function do_ssrstatus()
 {
+	#另一方法
+	#ipaddr=`ip addr show eth0 | grep inet | awk '{ print $2; }' | sed 's/\/.*$//' | grep -v ':'`
+	#curl -4 icanhazip.com
+	
 	ipaddr=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
 	echo -e "${Info}当前IP : ${GreenFont}${ipaddr}${FontEnd}"
 
