@@ -343,7 +343,7 @@ function do_ssrstatus()
 	#另一方法
 	#ipaddr=`ip addr show eth0 | grep inet | awk '{ print $2; }' | sed 's/\/.*$//' | grep -v ':'`
 	#curl -4 icanhazip.com
-	
+
 	ipaddr=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
 	echo -e "${Info}当前IP : ${GreenFont}${ipaddr}${FontEnd}"
 
@@ -726,6 +726,12 @@ function do_lnmpsite()
 	echo -e "${Info}LNMP 网站部署完成."
 }
 
+function do_update()
+{
+	rm -f /usr/bin/vps && wget -N --no-check-certificate -q -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && vps
+	echo -e "${Info}更新程序到最新版本 完成!"
+}
+
 #主程序入口
 echo -e "${GreenFont}
 +-----------------------------------------------------
@@ -740,7 +746,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	install | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	install | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -755,6 +761,7 @@ case "$action" in
 	echo -e "用法: ${GreenFont}${0##*/}${FontEnd} [指令]"
 	echo "指令:"
 	echo "    install    -- 安装并初始化VPS环境"
+	echo "    update     -- 更新程序到最新版本"
 	echo "    makedocker -- 生成 DOCKER 运行环境"
 	echo "    lnmpsite   -- 部署 LNMP 网站 (DOCKER环境)"
 	echo "    uninsdocker-- 移除 DOCKER 运行环境"
