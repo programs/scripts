@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/home/bin:~/bin
 export PATH
+
 LANG=en_US.UTF-8
+is64bit=`getconf LONG_BIT`
 
 # 用法
 # rm -f /usr/bin/vps && wget -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && vps
@@ -12,10 +14,26 @@ Error="${RedFont}[错误]${FontEnd}"
 Tip="${GreenFont}[注意]${FontEnd}"
 filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
+fsudo=''
+defaultuser='adminer'
+
+# 第三方URL定义
+ssrmu_url='https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh'
+zbanch_url='https://raw.githubusercontent.com/FunctionClub/ZBench/master/ZBench-CN.sh'
+sbanch_url='https://raw.githubusercontent.com/oooldking/script/master/superbench.sh'
+ipaddr_url='https://www.bt.cn/Api/getIpAddress'
+nodequery_url='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
 
 function checkRoot()
 {
 	[[ $EUID != 0 ]] && echo -e "${Error} 当前账号非ROOT(或没有ROOT权限)，无法继续操作，请使用${GreenBack} sudo su ${FontEnd}来获取临时ROOT权限（执行后会提示输入当前账号的密码）。" && exit 1
+}
+
+function checksudo()
+{
+	if [ `whoami` != "root" ]; then
+		fsudo='sudo '
+	fi
 }
 
 # 检查系统类型
@@ -36,6 +54,7 @@ function checkSystem()
 	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
 		release="centos"
     fi
+	checksudo
 }
 
 function configRoot()
@@ -85,8 +104,8 @@ function updateSystem()
 function createUser()
 {
 	echo -e "${Info}请输入 将要创建的用户名"
-	stty erase '^H' && read -p "(回车，默认用户名为adminer):" username
-	[[ -z "${username}" ]] && username='adminer'
+	stty erase '^H' && read -p "(回车，默认用户名为 ${defaultuser}):" username
+	[[ -z "${username}" ]] && username=${defaultuser}
 
 	exist_user=`cat /etc/passwd | grep ${username} | awk -F ':' '{print $1}'`
 	if [ -z "${exist_user}" ]; then
@@ -100,7 +119,7 @@ function createUser()
 		#echo "${userpasswd}" | passwd ${username} --stdin > /dev/null 2>&1
 		echo ${username}:${userpasswd} | chpasswd
 
-		usermod -a -G sudo ${username}
+		usermod -aG sudo ${username}
 		echo "export PATH=$PATH:/home/bin" >> /home/${username}/.bashrc
 
 	else
@@ -178,7 +197,7 @@ function setupSsrmu()
 	if [ ! -s /usr/local/shadowsocksr/user-config.json ]; then
 		echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
 		rm -f /home/bin/ssrmu.sh
-		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh
+		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${ssrmu_url}
 		chmod +x /home/bin/ssrmu.sh
 		/home/bin/ssrmu.sh
 
@@ -293,17 +312,18 @@ function do_install()
 function do_speedtest()
 {
 	rm -f /home/bin/zbanch.sh
-	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh https://raw.githubusercontent.com/FunctionClub/ZBench/master/ZBench-CN.sh
+	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh ${zbanch_url}
 	chmod +x /home/bin/zbanch.sh
 	/home/bin/zbanch.sh
 
 	rm -f /home/bin/superbench.sh
-	wget -q -O /home/bin/superbench.sh https://raw.githubusercontent.com/oooldking/script/master/superbench.sh
+	wget -q -O /home/bin/superbench.sh ${sbanch_url}
 	chmod +x /home/bin/superbench.sh
 
 	stty erase '^H' && read -p "是否需要进一步进行网络测试? [Y/n]:" yn
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
+		mtr -rw www.baidu.com
 		/home/bin/superbench.sh
 	fi
 }
@@ -320,7 +340,7 @@ function do_bbrstatus()
 
 function do_ssrstatus()
 {
-	ipaddr=`curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress`
+	ipaddr=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
 	echo -e "${Info}当前IP : ${GreenFont}${ipaddr}${FontEnd}"
 
 	ssr_folder="/usr/local/shadowsocksr"
@@ -336,11 +356,41 @@ function do_ssrstatus()
 	fi
 }
 
+function do_ssrmu()
+{
+	if [ ! -f /home/bin/ssrmu.sh ]; then
+		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${ssrmu_url}
+		chmod +x /home/bin/ssrmu.sh
+	fi 
+	/home/bin/ssrmu.sh	
+}
+
 function do_upgrade() { 
 	updateSystem
 }
 function do_adduser() {
 	createUser
+}
+function do_deluser()
+{
+	echo -e "${Info}请输入 将要删除的用户名"
+	stty erase '^H' && read -p "(回车，默认用户名为 ${defaultuser}):" username
+	[[ -z "${username}" ]] && username=${defaultuser}
+
+	exist_user=`cat /etc/passwd | grep ${username} | awk -F ':' '{print $1}'`
+	if [ ! -z "${exist_user}" ]; then
+
+		echo -e "${RedFont}${Tip}删除用户 ${username} 将不可恢复!${FontEnd}"
+		stty erase '^H' && read -p "请确认? [y/N]:" yn
+		[[ -z "${yn}" ]] && yn="n"
+		if [[ $yn == [Yy] ]]; then
+			userdel ${username}
+			groupdel ${username}
+			echo -e "${Tip}用户${GreenFont} ${username} ${FontEnd}已删除!"
+		fi
+	else
+		echo -e "${Error}要删除的用户名${GreenFont} ${username} ${FontEnd}不存在"
+	fi
 }
 
 function do_iptable()
@@ -434,9 +484,9 @@ function do_sshkeys()
 		echo ${userpwd} | sudo -S apt-get update
 
 		#rm -f ~/.ssh/known_hosts
-		#address=`curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress`
+		#address=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
 		#sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
-		#echo 'yes' | sudo ssh root@${address} -p ${sshPort} 
+		#echo 'yes' | ${fsudo} ssh root@${address} -p ${sshPort} 
 		mkdir ~/.ssh
 
 		if [ -d ~/.ssh ]; then
@@ -445,13 +495,13 @@ function do_sshkeys()
 			rm -f ~/.ssh/authorized_keys
 			wget -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
 			
-			sudo chmod 400 ~/.ssh/authorized_keys
-			sudo chattr +i ~/.ssh/authorized_keys
-			sudo chattr +i ~/.ssh
+			${fsudo} chmod 400 ~/.ssh/authorized_keys
+			${fsudo} chattr +i ~/.ssh/authorized_keys
+			${fsudo} chattr +i ~/.ssh
 
 			#PasswordAuthentication yes
-			sudo sed -i "/^PasswordAuthentication/c\PasswordAuthentication no " /etc/ssh/sshd_config
-			sudo service sshd restart
+			${fsudo} sed -i "/^PasswordAuthentication/c\PasswordAuthentication no " /etc/ssh/sshd_config
+			${fsudo} service sshd restart
 
 			echo -e "${Info}成功为${GreenFont} ${username} ${FontEnd}设置 SSH 授权密钥."
 		else
@@ -473,8 +523,8 @@ function do_bansshkey()
 	if [ ! -z "${userpwd}" ]; then
 		echo ${userpwd} | sudo -S apt-get update
 
-		sudo sed -i "/^PasswordAuthentication/c\PasswordAuthentication yes" /etc/ssh/sshd_config
-		sudo service sshd restart
+		${fsudo} sed -i "/^PasswordAuthentication/c\PasswordAuthentication yes" /etc/ssh/sshd_config
+		${fsudo} service sshd restart
 		echo -e "${Info}允许 SSH 登陆不使用授权密钥."
 
 	else
@@ -501,13 +551,141 @@ net.ipv6.conf.lo.disable_ipv6 = 1" | tee /etc/sysctl.d/99-ubuntu-ipv6.conf
 	fi
 }
 
+function do_nodequery()
+{
+	stty erase '^H' && read -p "请输入 NodeQuery 分配的令牌密码:" nodetoken
+	if [ ! -z "${nodetoken}" ]; then
+
+		nq_file='/home/bin/nq-install.sh'
+		rm -f ${nq_file}
+		wget -N --no-check-certificate -q -O ${nq_file} ${nodequery_url} && bash ${nq_file} ${nodetoken}
+
+		echo -e "${Info}为本地成功分配 NodeQuery."
+
+	else
+		echo -e "${Error}不允许输入的空令牌密码!" && exit 1
+	fi
+}
+
+function do_removenq()
+{
+	stty erase '^H' && read -p "是否确定移除 NodeQuery? [Y/n] :" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+
+		rm -R /etc/nodequery && (crontab -u nodequery -l | grep -v "/etc/nodequery/nq-agent.sh") | crontab -u nodequery - && userdel nodequery
+		echo -e "${Info}成功移除 NodeQuery.${GreenFont}(重启之后生效)${FontEnd}"
+	fi
+}
+
+function do_uninsdocker()
+{
+	stty erase '^H' && read -p "正在移除之前已安装的 Docker 版本，请确定? [Y/n]:" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+
+		${fsudo} systemctl disable docker
+		stty erase '^H' && read -p "是否保留原有的 Docker 镜像或容器? [Y/n]:" ynt
+		[[ -z "${ynt}" ]] && ynt="y"
+		if [[ $ynt == [Yy] ]]; then
+			${fsudo} sudo apt-get purge docker-ce
+		else
+			${fsudo} apt-get remove docker docker-engine docker.io
+			${fsudo} rm -rf /var/lib/docker
+		fi
+		echo -e "${Info}已移除 Docker!"
+	fi
+}
+
+function do_makedocker()
+{
+	if [ "$is64bit" != '64' ]; then
+		echo -e "${Error}请使用64位系统安装 Docker!" && exit 1
+	fi
+
+	stty erase '^H' && read -p "继续之前 将先移除之前可能已安装的 Docker 版本，请确定? [Y/n]:" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+
+		${fsudo} systemctl disable docker
+		stty erase '^H' && read -p "是否保留原有的 Docker 镜像或容器? [Y/n]:" ynt
+		[[ -z "${ynt}" ]] && ynt="y"
+		if [[ $ynt == [Yy] ]]; then
+			${fsudo} sudo apt-get purge docker-ce
+		else
+			${fsudo} apt-get remove docker docker-engine docker.io
+			${fsudo} rm -rf /var/lib/docker
+		fi
+
+		${fsudo} apt-get update
+		${fsudo} apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl software-properties-common
+
+		#SET UP THE REPOSITORY
+		if [ ${release} != "debian" ]; then
+			${fsudo} apt-get install -y --no-install-recommends gnupg2
+			curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+		fi
+		if [ ${release} != "ubuntu" ]; then
+			curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+		fi
+		${fsudo} apt-key fingerprint 0EBFCD88
+
+		if [ ${release} != "debian" ]; then
+			${fsudo} add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+		fi
+		if [ ${release} != "ubuntu" ]; then
+			${fsudo} add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+		fi
+		
+		#INSTALL DOCKER CE
+		${fsudo} apt-get install -y --no-install-recommends docker-ce
+		
+		#设置权限
+		dockeruser=${defaultuser}
+		${fsudo} groupadd docker
+		${fsudo} usermod -aG docker ${dockeruser}
+
+		# https://github.com/docker/compose/releases
+		${fsudo} curl -L https://github.com/docker/compose/releases/download/1.23.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+		${fsudo} chmod +x /usr/local/bin/docker-compose
+
+		stty erase '^H' && read -p "是否设置国内镜像加速? [y/N]:" ynn
+		[[ -z "${ynn}" ]] && ynn="n"
+		if [[ $ynn == [Yy] ]]; then
+			#设置镜像加速
+			${fsudo} mkdir -p /etc/docker
+			${fsudo} tee /etc/docker/daemon.json <<-'EOF'
+			{
+			"registry-mirrors": ["https://registry.docker-cn.com"]
+			}
+			EOF
+		fi
+		${fsudo} systemctl enable docker
+		curl -fsSL https://get.docker.com -o /home/bin/get-docker.sh
+		#${fsudo} bash /home/bin/get-docker.sh
+		${fsudo} docker run hello-world
+
+		echo -e "${Info}已完成 DOCKER 运行环境的配置!"
+	else
+		echo -e "${Error}暂时无法安装 Docker!" && exit 1
+	fi
+}
+
 #主程序入口
+echo "
++-----------------------------------------------------
+| VPS Script 1.x FOR Ubuntu/Debian
++-----------------------------------------------------
+| Copyright © 2015-2018 programs All rights reserved.
++-----------------------------------------------------
+"
 checkSystem
 [[ ${release} != "debian" ]] && [[ ${release} != "ubuntu" ]] && echo -e "${Error} 本脚本不支持当前系统 ${release} !" && exit 1
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6)
+	install | speedtest | bbrstatus | ssrstatus | sysupgrade  | adduser    | deluser    | ssrmu     | uninsdocker
+	iptable | configssh | qsecurity | editfrp   | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -522,17 +700,23 @@ case "$action" in
 	echo -e "用法: ${GreenFont}${0##*/}${FontEnd} [指令]"
 	echo "指令:"
 	echo "    install    -- 安装并初始化VPS环境"
+	echo "    makedocker -- 生成 DOCKER 运行环境"
+	echo "    uninsdocker-- 移除 DOCKER 运行环境"
 	echo "    speedtest  -- 测试网络速度"
 	echo "    bbrstatus  -- 查看 BBR 状态"
 	echo "    ssrstatus  -- 查看 SSR 状态"
+	echo "    ssrmu      -- 运行 SSR 修改或增加配置"
 	echo "    sysupgrade -- 系统更新"
 	echo "    adduser    -- 新增用户"
+	echo "    deluser    -- 删除用户"
 	echo "    iptable    -- 修改防火墙"
 	echo "    configssh  -- 修改 SSH 配置"
 	echo "    qsecurity  -- 查询本地安全信息"
 	echo "    editfrp    -- 修改 FRP 配置"
 	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
 	echo "    enableipv6 -- 开关 IPv6"
+	echo "    nodequery  -- 增加 nodequery 监控"
+	echo "    removenq   -- 移除 nodequery 监控"
 	echo "    sshkeys    -- 配置 SSH 登陆使用授权密钥 (须非ROOT用户环境)"
 	echo "    bansshkey  -- 允许 SSH 登陆不使用授权密钥 (须非ROOT用户环境)"
 	echo " "
