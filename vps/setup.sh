@@ -400,6 +400,11 @@ function do_iptable()
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		iptables-restore < /etc/iptables.up.rules
+
+		# 如果存在 Docker 则需要重启其服务
+		if [ -f /usr/bin/docker ]; then
+			systemctl restart docker.service
+		fi
 	fi
 }
 
