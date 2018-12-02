@@ -409,6 +409,7 @@ function do_iptable()
 		if [ -f /usr/bin/docker ]; then
 			systemctl restart docker.service
 		fi
+		echo -e "${Info}防火墙设置成功!"
 	fi
 }
 
@@ -437,6 +438,7 @@ function do_configssh()
 		if [[ $yn == [Yy] ]]; then
 			service sshd restart
 		fi
+		echo -e "${Info}SSH 服务设置成功!"
 	fi
 }
 
