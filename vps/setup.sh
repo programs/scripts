@@ -613,7 +613,7 @@ function do_makedocker()
 		if [[ $ynt == [Yy] ]]; then
 			${fsudo} sudo apt-get purge docker-ce
 		else
-			${fsudo} apt-get remove docker docker-engine docker.io
+			${fsudo} apt-get remove -y docker docker-engine docker.io
 			${fsudo} rm -rf /var/lib/docker
 		fi
 
@@ -638,7 +638,7 @@ function do_makedocker()
 		fi
 		
 		#INSTALL DOCKER CE
-		${fsudo} apt-get install -y --no-install-recommends docker-ce docker-engine docker.io
+		${fsudo} apt-get install -y docker.io #docker-ce docker-engine
 		
 		#设置权限
 		dockeruser=${defaultuser}
