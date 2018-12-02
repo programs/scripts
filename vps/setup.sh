@@ -638,7 +638,7 @@ function do_makedocker()
 		fi
 		
 		#INSTALL DOCKER CE
-		${fsudo} apt-get install -y --no-install-recommends docker-ce
+		${fsudo} apt-get install -y --no-install-recommends docker-ce docker-engine docker.io
 		
 		#设置权限
 		dockeruser=${defaultuser}
@@ -661,10 +661,13 @@ function do_makedocker()
 			EOF
 		fi
 		${fsudo} systemctl enable docker
+		${fsudo} systemctl daemon-reload
+		${fsudo} systemctl restart docker
+
 		curl -fsSL https://get.docker.com -o /home/bin/get-docker.sh
 		#${fsudo} bash /home/bin/get-docker.sh
-		${fsudo} docker run hello-world
 
+		${fsudo} docker run hello-world
 		echo -e "${Info}已完成 DOCKER 运行环境的配置!"
 	else
 		echo -e "${Error}暂时无法安装 Docker!" && exit 1
@@ -672,13 +675,14 @@ function do_makedocker()
 }
 
 #主程序入口
-echo "
+echo -e "${GreenFont}
 +-----------------------------------------------------
 | VPS Script 1.x FOR Ubuntu/Debian
 +-----------------------------------------------------
 | Copyright © 2015-2018 programs All rights reserved.
 +-----------------------------------------------------
-"
+${FontEnd}"
+
 checkSystem
 [[ ${release} != "debian" ]] && [[ ${release} != "ubuntu" ]] && echo -e "${Error} 本脚本不支持当前系统 ${release} !" && exit 1
 action=$1
