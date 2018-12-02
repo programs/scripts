@@ -684,8 +684,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	install | speedtest | bbrstatus | ssrstatus | sysupgrade  | adduser    | deluser    | ssrmu     | uninsdocker)
-	iptable | configssh | qsecurity | editfrp   | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
