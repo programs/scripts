@@ -628,6 +628,7 @@ function do_makedocker()
 		fi
 	fi
 	
+	#https://www.howtoing.com/ubuntu-docker
 	${fsudo} apt-get update
 	${fsudo} apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl software-properties-common
 
@@ -685,6 +686,37 @@ function do_makedocker()
 	echo -e "${Info}已完成 DOCKER 运行环境的配置!"
 }
 
+function do_lnmpsite()
+{
+	if [ ! -f /usr/bin/docker ]; then
+		echo -e "${Error}请先安装 Docker 运行环境!" && exit 1
+	fi
+
+	echo -e "${Info}正在部署 LNMP 网站 (DOCKER环境) ..."
+	${fsudo} apt-get update
+	${fsudo} apt-get install -y --no-install-recommends git
+
+	currpath=`pwd`
+	if [ -d /home/www ]; then
+	    ${fsudo} mkdir -p /home/backsite
+		${fsudo} tar zcvf /home/backsite/www`date +%Y%m%d.%H%M%S`.tar.gz /home/www
+		${fsudo} rm -rf /home/www
+	fi
+	cd /home
+	${fsudo} git clone https://github.com/gorouter/lnmpsite.git
+	${fsudo} mv /home/lnmpsite  /home/www
+	${fsudo} chmod +x /home/www/lnmpsite
+	${fsudo} ln -s /home/www/lnmpsite /usr/bin/lnmpsite
+
+	if [ -f /home/www/docker-compose.yml ]; then
+		cd /home/www
+		/home/www/lnmpsite up
+	fi
+
+	cd ${currpath}
+	echo -e "${Info}LNMP 网站部署完成."
+}
+
 #主程序入口
 echo -e "${GreenFont}
 +-----------------------------------------------------
@@ -699,7 +731,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	install | speedtest | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	install | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -715,6 +747,7 @@ case "$action" in
 	echo "指令:"
 	echo "    install    -- 安装并初始化VPS环境"
 	echo "    makedocker -- 生成 DOCKER 运行环境"
+	echo "    lnmpsite   -- 部署 LNMP 网站 (DOCKER环境)"
 	echo "    uninsdocker-- 移除 DOCKER 运行环境"
 	echo "    speedtest  -- 测试网络速度"
 	echo "    bbrstatus  -- 查看 BBR 状态"
