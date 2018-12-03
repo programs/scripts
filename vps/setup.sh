@@ -163,8 +163,16 @@ function createSwap()
 		echo -e "${Info}当前系统不存在交换分区，正在创建交换分区..."
 
 		tmpswapfile=`cat /etc/fstab | grep 'swap' | grep -v 'dev' | awk '{print $1}'`
-		delSwapfile=`echo ${tmpswapfile} | sed 's#\/#\\\/#g'`
-		[[ ! -z "${delSwapfile}" ]] && sed -i "/${delSwapfile}/d" /etc/fstab
+		if [ -f ${tmpswapfile} ]; then
+
+			echo -e "${Info}正在移除原有交换分区..."
+			swapoff ${swap_file}
+			sleep 2s
+			rm -f ${swap_file}
+
+			delSwapfile=`echo ${tmpswapfile} | sed 's#\/#\\\/#g'`
+			[[ ! -z "${delSwapfile}" ]] && sed -i "/${delSwapfile}/d" /etc/fstab
+		fi
 		need_swap='do'
 	else
 		echo -e "${Info}当前系统交换分区已存在，大小为${GreenFont} ${swap_size}M ${FontEnd}"
