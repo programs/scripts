@@ -765,6 +765,7 @@ function do_lnmpsite()
 
 		cd /home/www
 		/home/www/lnmpsite up
+		#docker logs mysql
 	fi
 
 	cd ${currpath}
