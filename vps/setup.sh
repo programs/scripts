@@ -163,7 +163,7 @@ function createSwap()
 		echo -e "${Info}当前系统不存在交换分区，正在创建交换分区..."
 
 		tmpswapfile=`cat /etc/fstab | grep 'swap' | grep -v 'dev' | awk '{print $1}'`
-		if [ -f ${tmpswapfile} ]; then
+		if [ ! -z "${tmpswapfile}" ]; then
 
 			echo -e "${Info}正在移除原有交换分区..."
 			swapoff ${swap_file}
