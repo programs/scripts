@@ -736,19 +736,27 @@ function do_lnmpsite()
 
 	if [ -f /home/www/docker-compose.yml ]; then
 
-		dbdefpwd=`cat /dev/urandom | head -n 8 | md5sum | head -c 8`
-		echo -e "${Tip}请设置 MySQL 数据库 Root 密码"
-		stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd
-		[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
-		config="MySQLpwd=${dbpasswd}"
+		if [ ! -f /home/www/mysql/.passwd ]; then
 
-		templ=`cat /home/www/docker-compose.yml`
-		printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/www/docker-compose.yml
+			dbdefpwd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
+			echo -e "${Tip}请设置 MySQL 数据库 Root 密码"
+			stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd
+			[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
+			config="MySQLpwd=${dbpasswd}"
+
+			templ=`cat /home/www/docker-compose.yml`
+			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/www/docker-compose.yml
+			touch /home/www/mysql/.passwd
+		fi
 
 		cd /home/www
 		/home/www/lnmpsite up
-		sleep 2s
-		docker exec mysql bash -c "/usr/local/bin/wpsinit"
+
+		if [ ! -f /home/www/mysql/.wpsdone ]; then
+			sleep 2s
+			docker exec mysql bash -c "/usr/local/bin/wpsinit"
+			touch /home/www/mysql/.wpsdone
+		fi
 	fi
 
 	cd ${currpath}
