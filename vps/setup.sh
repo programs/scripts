@@ -747,13 +747,14 @@ function do_lnmpsite()
 			/home/www/lnmpsite down > /dev/null 2>&1
 			mysqldb=`cat /home/www/docker-compose.yml | grep lnmpsite-mysql | awk -F 'image:' '{print $2}'`
 			datamap='/home/www/mysql/data:/var/lib/mysql'
-			confmap='/home/wwwmysql/my.cnf:/etc/my.cnf'
+			confmap='/home/www/mysql/my.cnf:/etc/my.cnf'
 			docker run -d --name semysql -p 3306:3306 -v ${datamap} -v ${confmap} -e MYSQL_ROOT_PASSWORD=${dbpasswd} ${mysqldb}
 			echo -e "${Tip}正在初始化数据库，请稍等 ... "
 			sleep 10s
 			docker exec semysql bash -c "/usr/local/bin/wpsinit"
 			sleep 2s
 			docker stop semysql > /dev/null 2>&1 && docker rm semysql > /dev/null 2>&1
+			echo -e "${Tip}请牢记此数据库 ROOT 密码:${GreenFont} ${dbpasswd} ${FontEnd}"
 
 			# 生成无效密码信息
 			dbngpwd=`cat /dev/urandom | head -n 32 | md5sum | head -c 32`
