@@ -135,9 +135,9 @@ function installddos()
 		mkdir /usr/local/ddos
 
 		echo -e "${Info}正在安装 DDOS";
-		rf -f /usr/local/ddos/ddos.conf
-		rf -f /usr/local/ddos/ignore.ip.list
-		rf -f /usr/local/ddos/ddos.sh
+		rm -f /usr/local/ddos/ddos.conf 
+		rm -f /usr/local/ddos/ignore.ip.list
+		rm -f /usr/local/ddos/ddos.sh
 
 		wget -N --no-check-certificate -q -O /usr/local/ddos/ddos.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.conf
 		wget -N --no-check-certificate -q -O /usr/local/ddos/ignore.ip.list https://raw.githubusercontent.com/programs/scripts/master/vps/config/ignore.ip.list
@@ -329,10 +329,10 @@ function setupBBR()
 function do_install()
 {
 	configRoot
+	createSwap
 	updateSystem
 	createUser
 	installddos
-	createSwap
 	setupSsrmu
 	installFrp
 	setupServices
