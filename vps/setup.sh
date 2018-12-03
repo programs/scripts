@@ -742,8 +742,22 @@ function do_lnmpsite()
 			echo -e "${Tip}请设置 MySQL 数据库 Root 密码"
 			stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd
 			[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
-			config="MySQLpwd=${dbpasswd}"
 
+			# 生成安全数据
+			/home/www/lnmpsite down > /dev/null 2>&1
+			mysqldb=`cat /home/www/docker-compose.yml | grep lnmpsite-mysql | awk -F 'image:' '{print $2}'`
+			datamap='/home/www/mysql/data:/var/lib/mysql'
+			confmap='/home/wwwmysql/my.cnf:/etc/my.cnf'
+			docker run -d --name semysql -p 3306:3306 -v ${datamap} -v ${confmap} -e MYSQL_ROOT_PASSWORD=${dbpasswd} ${mysqldb}
+			echo -e "${Tip}正在初始化数据库，请稍等 ... "
+			sleep 10s
+			docker exec semysql bash -c "/usr/local/bin/wpsinit"
+			sleep 2s
+			docker stop semysql > /dev/null 2>&1 && docker rm semysql > /dev/null 2>&1
+
+			# 生成无效密码信息
+			dbngpwd=`cat /dev/urandom | head -n 32 | md5sum | head -c 32`
+			config="MySQLpwd=${dbngpwd}"
 			templ=`cat /home/www/docker-compose.yml`
 			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/www/docker-compose.yml
 			touch /home/www/mysql/.passwd
@@ -751,12 +765,6 @@ function do_lnmpsite()
 
 		cd /home/www
 		/home/www/lnmpsite up
-
-		if [ ! -f /home/www/mysql/.wpsdone ]; then
-			sleep 2s
-			docker exec mysql bash -c "/usr/local/bin/wpsinit"
-			touch /home/www/mysql/.wpsdone
-		fi
 	fi
 
 	cd ${currpath}
