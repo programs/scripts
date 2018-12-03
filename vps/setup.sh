@@ -210,6 +210,7 @@ function createSwap()
 			echo "${swapfile}    swap    swap    defaults    0 0" >> /etc/fstab
 
 			swap_size=$( free -m | awk '/Swap/ {print $2}' )
+			swapon -s
 			echo -e "${Info}创建交换分区完成，实际大小为${GreenFont} ${swap_size}M ${FontEnd}"
 		else
 			echo -e "${Error}创建交换分区失败!"
