@@ -732,6 +732,7 @@ function do_lnmpsite()
 
 		cd /home/www
 		/home/www/lnmpsite up
+		sleep 2s
 		docker exec mysql bash -c "/usr/local/bin/wpsinit"
 	fi
 
