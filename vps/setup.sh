@@ -709,20 +709,35 @@ function do_lnmpsite()
 
 	currpath=`pwd`
 	if [ -d /home/www ]; then
-	    ${fsudo} mkdir -p /home/backsite
-		${fsudo} tar zcvf /home/backsite/www`date +%Y%m%d.%H%M%S`.tar.gz /home/www
-		${fsudo} rm -rf /home/www
+		stty erase '^H' && read -p "发现本地已存在 LNMP 站点，是否进行备份? [Y/n]:" yn
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			${fsudo} mkdir -p /home/backsite
+			${fsudo} tar zcvf /home/backsite/www`date +%Y%m%d.%H%M%S`.tar.gz /home/www
+			${fsudo} rm -rf /home/www
+		fi
 	fi
-	cd /home
-	${fsudo} git clone https://github.com/gorouter/lnmpsite.git
-	${fsudo} mv /home/lnmpsite  /home/www
-	${fsudo} chmod +x /home/www/lnmpsite
-	${fsudo} ln -s /home/www/lnmpsite /usr/bin/lnmpsite
+
+	if [ -d /home/www ]; then
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 LNMP 站点并重新部署? [y/N]:" ynt
+		[[ -z "${ynt}" ]] && ynt="n"
+		if [[ $ynt == [Yy] ]]; then
+			${fsudo} rm -rf /home/www
+		fi
+	fi
+
+	if [ ! -d /home/www ]; then
+		cd /home
+		${fsudo} git clone https://github.com/gorouter/lnmpsite.git
+		${fsudo} mv /home/lnmpsite  /home/www
+		${fsudo} chmod +x /home/www/lnmpsite
+		${fsudo} ln -s /home/www/lnmpsite /usr/bin/lnmpsite
+	fi
 
 	if [ -f /home/www/docker-compose.yml ]; then
 
 		dbdefpwd=`cat /dev/urandom | head -n 8 | md5sum | head -c 8`
-		echo -e "${Tip}请设置MySQL数据库Root密码"
+		echo -e "${Tip}请设置 MySQL 数据库 Root 密码"
 		stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd
 		[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
 		config="MySQLpwd=${dbpasswd}"
