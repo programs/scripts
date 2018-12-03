@@ -16,6 +16,7 @@ filepath=$(cd "$(dirname "$0")"; pwd)
 file=$(echo -e "${filepath}"|awk -F "$0" '{print $1}')
 fsudo=''
 defaultuser='adminer'
+doinstall='false'
 
 # 第三方URL定义
 ssrmu_url='https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh'
@@ -216,6 +217,15 @@ function createSwap()
 			echo -e "${Info}创建交换分区完成，实际大小为${GreenFont} ${swap_size}M ${FontEnd}"
 		else
 			echo -e "${Error}创建交换分区失败!"
+
+			if [ "${doinstall}" == "true" ]; then 
+				stty erase '^H' && read -p "是否继续? [y/N]:" yn
+				[[ -z "${yn}" ]] && yn="n"
+				if [[ $yn == [Yy] ]]; then
+					echo -e "${Info}本程序被中止!"
+					exit 1
+				fi
+			fi
 		fi
 	fi
 }
@@ -328,6 +338,7 @@ function setupBBR()
 
 function do_install()
 {
+	doinstall='true'
 	configRoot
 	createSwap
 	updateSystem
