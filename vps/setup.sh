@@ -153,12 +153,39 @@ function installddos()
 
 function createSwap()
 {
+	need_swap=''
+	swapfile='/swapdisk'
+
 	tram_size=$( free -m | awk '/Mem/ {print $2}' )
 	swap_size=$( free -m | awk '/Swap/ {print $2}' )
-    swap_count=`swapon -s | grep -v 'Filename' |  awk '{print $1}' | wc -l`
+    swap_count=`swapon -s | grep -v 'Filename' | awk '{print $1}' | wc -l`
 	if [[ "${swap_count}" -lt "1" ]]; then
+		echo -e "${Info}当前系统不存在交换分区，正在创建交换分区..."
+		need_swap='do'
+	else
+		echo -e "${Info}当前系统交换分区已存在，大小为${GreenFont} ${swap_size}M ${FontEnd}"
 
-        echo -e "${Info}当前系统不存在交换分区，正在创建交换分区..."
+		swap_file=`swapon -s | grep -v 'Filename' | grep -v 'dev' | awk '{print $1}'`
+		if [ -f ${swap_file} ]; then
+			stty erase '^H' && read -p "是否重新创建交换分区? [Y/n] :" ynt
+			[[ -z "${ynt}" ]] && ynt="y"
+			if [[ $ynt == [Yy] ]]; then
+				swapfile=${swap_file}
+
+				echo -e "${Info}正在移除原有交换分区..."
+				swapoff ${swap_file}
+				sleep 2s
+				rm -f ${swap_file}
+
+				delSwapfile=`echo ${swap_file} | sed 's#\/#\\\/#g'`
+				sed -i "/${delSwapfile}/d" /etc/fstab
+				need_swap='do'
+			fi
+		fi
+	fi
+
+	if [ "x${need_swap}" == "xdo" ]; then
+
 	    gsize=`expr ${tram_size} / 1024`
 		bsize=512
 		if [ ${gsize} -gt 64 ]; then
@@ -168,25 +195,26 @@ function createSwap()
 	    elif [ ${gsize} -gt 4 ]; then
 		    ssize=${tram_size}
 	    else
-		    ssize=`expr ${tram_size} * 2`
+		    ssize=`expr ${tram_size} \* 3`
 			if [ ${tram_size} -lt ${bsize} ]; then
 			    bsize=${tram_size}
 			fi
 		fi
-
 		bcount=`expr ${ssize} / ${bsize}`
-		swapfile='/swapdisk'
+		tty erase '^H' && read -p "输入将要创建交换分区大小，默认为 ${bsize}M * ${bcount} = `expr ${bsize} \* ${bcount}`M:" inputsize
+		if [ ! -z "${inputsize}" ]; then
+			bcount=`expr ${inputsize} / ${bsize}`
+		fi
 		dd if=/dev/zero of=${swapfile} bs=${bsize}M count=${bcount}
-		ls -lh ${swapfile}
+
+		#ls -lh ${swapfile}
 		chmod 600 ${swapfile}
 		mkswap ${swapfile}
 		swapon ${swapfile}
 		echo "${swapfile}    swap    swap    defaults    0 0" >> /etc/fstab
 
 		swap_size=$( free -m | awk '/Swap/ {print $2}' )
-		echo -e "${Info}创建交换分区完成，大小为${GreenFont} ${swap_size}M ${FontEnd}"
-	else
-		echo -e "${Info}当前系统交换分区已存在，大小为${GreenFont} ${swap_size}M ${FontEnd}"
+		echo -e "${Info}创建交换分区完成，实际大小为${GreenFont} ${swap_size}M ${FontEnd}"
 	fi
 }
 
@@ -369,6 +397,9 @@ function do_ssrmu()
 	/home/bin/ssrmu.sh	
 }
 
+function do_redoswap() {
+	createSwap
+}
 function do_upgrade() { 
 	updateSystem
 }
@@ -793,7 +824,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	install | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	install | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -810,6 +841,7 @@ case "$action" in
 	echo "    install    -- 安装并初始化VPS环境"
 	echo "    update     -- 更新程序到最新版本"
 	echo "    makedocker -- 生成 DOCKER 运行环境"
+	echo "    redoswap   -- 创建或重建交换分区"
 	echo "    lnmpsite   -- 部署 LNMP 网站 (DOCKER环境)"
 	echo "    uninsdocker-- 移除 DOCKER 运行环境"
 	echo "    speedtest  -- 测试网络速度"
