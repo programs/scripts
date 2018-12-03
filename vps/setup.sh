@@ -164,7 +164,7 @@ function createSwap()
 
 		tmpswapfile=`cat /etc/fstab | grep 'swap' | grep -v 'dev' | awk '{print $1}'`
 		delSwapfile=`echo ${tmpswapfile} | sed 's#\/#\\\/#g'`
-		sed -i "/${delSwapfile}/d" /etc/fstab
+		[[ ! -z "${delSwapfile}" ]] && sed -i "/${delSwapfile}/d" /etc/fstab
 		need_swap='do'
 	else
 		echo -e "${Info}当前系统交换分区已存在，大小为${GreenFont} ${swap_size}M ${FontEnd}"
@@ -182,7 +182,7 @@ function createSwap()
 				rm -f ${swap_file}
 
 				delSwapfile=`echo ${swap_file} | sed 's#\/#\\\/#g'`
-				sed -i "/${delSwapfile}/d" /etc/fstab
+				[[ ! -z "${delSwapfile}" ]] && sed -i "/${delSwapfile}/d" /etc/fstab
 				need_swap='do'
 			fi
 		fi
@@ -190,7 +190,7 @@ function createSwap()
 
 	if [ "x${need_swap}" == "xdo" ]; then
 		
-		echo -e "当前物理内存为${GreenBack} ${tram_size}M ${FontEnd}"
+		echo -e "${Info}当前物理内存为${GreenBack} ${tram_size}M ${FontEnd}"
 		tty erase '^H' && read -p "请输入将要创建交换分区大小 (默认等于物理内存大小) :" inputsize
 		[[ -z "${inputsize}" ]] && inputsize=${tram_size}
 		dd if=/dev/zero of=${swapfile} bs=${inputsize}M count=1
