@@ -774,7 +774,7 @@ function do_lnmpsite()
 
 function do_update()
 {
-	rm -f /usr/bin/vps && wget -N --no-check-certificate -q -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && && clear && vps
+	rm -f /usr/bin/vps && wget -N --no-check-certificate -q -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && clear && vps
 	echo -e "${Info}更新程序到最新版本 完成!"
 }
 
