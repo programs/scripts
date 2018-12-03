@@ -62,6 +62,7 @@ function configRoot()
 {
 	if [ ! -f ~/rootdone ]; then 
 
+		apt-get update
 		locale-gen en_US.UTF-8
 		dpkg-reconfigure locales
 
@@ -91,7 +92,7 @@ function configRoot()
 
 function updateSystem()
 {
-	apt-get update
+	apt-get update > /dev/null 2>&1
 	
 	stty erase '^H' && read -p "是否需要更新系统 ? [y/N] :" yn
 	[[ -z "${yn}" ]] && yn="n"
