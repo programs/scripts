@@ -199,8 +199,8 @@ function createSwap()
 	if [ "x${need_swap}" == "xdo" ]; then
 		
 		echo -e "${Info}当前物理内存为${GreenBack} ${tram_size}M ${FontEnd}"
-		stty erase '^H' && read -p "请输入将要创建交换分区大小 (默认等于物理内存的一半) :" inputsize
-		[[ -z "${inputsize}" ]] && inputsize=`expr ${tram_size} / 2`
+		stty erase '^H' && read -p "请输入将要创建交换分区大小 (默认等于物理内存-100M) :" inputsize
+		[[ -z "${inputsize}" ]] && inputsize=`expr ${tram_size} - 100`
 		dd if=/dev/zero of=${swapfile} bs=${inputsize}M count=1
 
 		swapsize=`du -b ${swapfile} | awk '{print $1}'`
