@@ -166,9 +166,9 @@ function createSwap()
 		if [ ! -z "${tmpswapfile}" ]; then
 
 			echo -e "${Info}正在移除原有交换分区..."
-			swapoff ${swap_file}
+			swapoff ${tmpswapfile}
 			sleep 2s
-			rm -f ${swap_file}
+			rm -f ${tmpswapfile}
 
 			delSwapfile=`echo ${tmpswapfile} | sed 's#\/#\\\/#g'`
 			[[ ! -z "${delSwapfile}" ]] && sed -i "/${delSwapfile}/d" /etc/fstab
