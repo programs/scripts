@@ -63,6 +63,8 @@ function configRoot()
 	if [ ! -f ~/rootdone ]; then 
 
 		apt-get update
+		apt-get install -y --no-install-recommends supervisor
+
 		locale-gen en_US.UTF-8
 		dpkg-reconfigure locales
 
@@ -300,7 +302,7 @@ function setupServices()
 {
 	sleep 1s
 	echo -e "${Info}正在安装必要的系统软件..."
-	apt-get install -y --no-install-recommends virt-what fail2ban supervisor
+	apt-get install -y --no-install-recommends virt-what fail2ban 
 
 	sleep 1s
 	echo -e "${Info}正在下载源文件..."
