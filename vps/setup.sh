@@ -161,6 +161,10 @@ function createSwap()
     swap_count=`swapon -s | grep -v 'Filename' | awk '{print $1}' | wc -l`
 	if [[ "${swap_count}" -lt "1" ]]; then
 		echo -e "${Info}当前系统不存在交换分区，正在创建交换分区..."
+
+		tmpswapfile=`cat /etc/fstab | grep 'swap' | grep -v 'dev' | awk '{print $1}'`
+		delSwapfile=`echo ${tmpswapfile} | sed 's#\/#\\\/#g'`
+		sed -i "/${delSwapfile}/d" /etc/fstab
 		need_swap='do'
 	else
 		echo -e "${Info}当前系统交换分区已存在，大小为${GreenFont} ${swap_size}M ${FontEnd}"
@@ -185,36 +189,22 @@ function createSwap()
 	fi
 
 	if [ "x${need_swap}" == "xdo" ]; then
+		
+		tty erase '^H' && read -p "当前物理内存为 ${tram_size}M，请输入将要创建交换分区大小 :" inputsize
+		[[ -z "${inputsize}" ]] && inputsize=${tram_size}
+		dd if=/dev/zero of=${swapfile} bs=${inputsize}M count=1
 
-	    gsize=`expr ${tram_size} / 1024`
-		bsize=512
-		if [ ${gsize} -gt 64 ]; then
-		    ssize=16384
-	    elif [ ${gsize} -gt 8 ]; then 
-		    ssize=8192
-	    elif [ ${gsize} -gt 4 ]; then
-		    ssize=${tram_size}
-	    else
-		    ssize=`expr ${tram_size} \* 3`
-			if [ ${tram_size} -lt ${bsize} ]; then
-			    bsize=${tram_size}
-			fi
+		if [ -f ${swapfile} ]; then
+			chmod 600 ${swapfile}
+			mkswap ${swapfile}
+			swapon ${swapfile}
+			echo "${swapfile}    swap    swap    defaults    0 0" >> /etc/fstab
+
+			swap_size=$( free -m | awk '/Swap/ {print $2}' )
+			echo -e "${Info}创建交换分区完成，实际大小为${GreenFont} ${swap_size}M ${FontEnd}"
+		else
+			echo -e "${Error}创建交换分区失败!"
 		fi
-		bcount=`expr ${ssize} / ${bsize}`
-		tty erase '^H' && read -p "输入将要创建交换分区大小，默认为 ${bsize}M * ${bcount} = `expr ${bsize} \* ${bcount}`M:" inputsize
-		if [ ! -z "${inputsize}" ]; then
-			bcount=`expr ${inputsize} / ${bsize}`
-		fi
-		dd if=/dev/zero of=${swapfile} bs=${bsize}M count=${bcount}
-
-		#ls -lh ${swapfile}
-		chmod 600 ${swapfile}
-		mkswap ${swapfile}
-		swapon ${swapfile}
-		echo "${swapfile}    swap    swap    defaults    0 0" >> /etc/fstab
-
-		swap_size=$( free -m | awk '/Swap/ {print $2}' )
-		echo -e "${Info}创建交换分区完成，实际大小为${GreenFont} ${swap_size}M ${FontEnd}"
 	fi
 }
 
