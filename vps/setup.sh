@@ -203,7 +203,9 @@ function createSwap()
 		[[ -z "${inputsize}" ]] && inputsize=`expr ${tram_size} / 2`
 		dd if=/dev/zero of=${swapfile} bs=${inputsize}M count=1
 
-		if [ -f ${swapfile} ]; then
+		swapsize=`du -b ${swapfile} | awk '{print $1}'`
+		if [ ! ${swapsize} -eq 0 ]; then
+		
 			chmod 600 ${swapfile}
 			mkswap ${swapfile}
 			swapon ${swapfile}
