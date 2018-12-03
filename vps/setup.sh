@@ -720,8 +720,19 @@ function do_lnmpsite()
 	${fsudo} ln -s /home/www/lnmpsite /usr/bin/lnmpsite
 
 	if [ -f /home/www/docker-compose.yml ]; then
+
+		dbdefpwd=`cat /dev/urandom | head -n 8 | md5sum | head -c 8`
+		echo -e "${Tip}请设置MySQL数据库Root密码"
+		stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd
+		[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
+		config="MySQLpwd=${dbpasswd}"
+
+		templ=`cat /home/www/docker-compose.yml`
+		printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/www/docker-compose.yml
+
 		cd /home/www
 		/home/www/lnmpsite up
+		docker exec mysql bash -c "/usr/local/bin/wpsinit"
 	fi
 
 	cd ${currpath}
