@@ -166,7 +166,7 @@ function createSwap()
 		if [ ! -z "${tmpswapfile}" ]; then
 
 			echo -e "${Info}正在移除原有交换分区..."
-			swapoff ${tmpswapfile}
+			swapoff ${tmpswapfile} > /dev/null 2>&1
 			sleep 2s
 			rm -f ${tmpswapfile}
 
@@ -185,7 +185,7 @@ function createSwap()
 				swapfile=${swap_file}
 
 				echo -e "${Info}正在移除原有交换分区..."
-				swapoff ${swap_file}
+				swapoff ${swap_file} > /dev/null 2>&1
 				sleep 2s
 				rm -f ${swap_file}
 
@@ -205,10 +205,10 @@ function createSwap()
 
 		swapsize=`du -b ${swapfile} | awk '{print $1}'`
 		if [ ! ${swapsize} -eq 0 ]; then
-		
+
 			chmod 600 ${swapfile}
-			mkswap ${swapfile}
-			swapon ${swapfile}
+			mkswap ${swapfile} > /dev/null 2>&1
+			swapon ${swapfile} > /dev/null 2>&1
 			echo "${swapfile}    swap    swap    defaults    0 0" >> /etc/fstab
 
 			swap_size=$( free -m | awk '/Swap/ {print $2}' )
