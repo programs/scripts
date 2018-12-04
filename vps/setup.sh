@@ -251,15 +251,16 @@ function do_ssripv6()
 	fi
 
 	userconfig='/usr/local/shadowsocksr/user-config.json'
-	echo -e "${Info}path ${GreenFont}已安装${FontEnd}"
-	cat ${userconfig} |
-		jq 'to_entries | 
-			map(if .key == "dns_ipv6" 
-				then . + {"value":'${ipv6flag}'} 
-				else . 
-				end
-				) | 
-			from_entries' > ${userconfig}
+	echo -e "${Info}path ${GreenFont}${userconfig}${FontEnd}"
+	usercontent=`cat ${userconfig} | \
+		jq 'to_entries | \
+			map(if .key == "dns_ipv6" \
+				then . + {"value":'${ipv6flag}'} \
+				else . \
+				end \
+				) | \
+			from_entries'`
+	echo ${usercontent} > ${userconfig}
 	PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
     [[ ! -z ${PID} ]] && /etc/init.d/ssrmu stop
     /etc/init.d/ssrmu start
