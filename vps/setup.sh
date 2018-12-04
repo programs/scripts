@@ -418,7 +418,7 @@ function do_ssrstatus()
 	#curl -4 icanhazip.com
 
 	ipaddr=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
-	[[ -z "${ipaddr}" ]] && ipaddr=`curl -4 icanhazip.com`
+	[[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=`curl -sS -4 icanhazip.com`
 	echo -e "${Info}当前IP : ${GreenFont}${ipaddr}${FontEnd}"
 
 	ssr_folder="/usr/local/shadowsocksr"
@@ -865,8 +865,8 @@ function do_uninsssr()
 	ssr_folder='/usr/local/shadowsocksr'
 	if [ ! -e ${ssr_folder} ]; then 
 		if [ -f /etc/supervisor/conf.d/frp.conf ]; then
-			echo -e "${Info}正在移除 FRP 环境"
-			
+			echo -e "${Info}正在移除 FRP 环境..."
+
 			systemctl stop supervisor
 			apt-get remove -y supervisor
 			[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
