@@ -63,7 +63,6 @@ function configRoot()
 	if [ ! -f ~/rootdone ]; then 
 
 		apt-get update
-		apt-get install -y --no-install-recommends supervisor
 
 		locale-gen en_US.UTF-8
 		dpkg-reconfigure locales
@@ -89,19 +88,6 @@ function configRoot()
 	if [ ! -d /home/frp ]; then
 		rm -rf /home/frp
 		mkdir -p /home/frp
-	fi
-}
-
-function updateSystem()
-{
-	apt-get update > /dev/null 2>&1
-	
-	stty erase '^H' && read -p "是否需要更新系统 ? [y/N] :" yn
-	[[ -z "${yn}" ]] && yn="n"
-	if [[ $yn == [Yy] ]]; then
-		echo -e "${Info}正在更新系统..."
-		apt-get upgrade -y
-		echo -e "${Info}更新系统完成."
 	fi
 }
 
@@ -131,30 +117,6 @@ function createUser()
 	fi
 }
 
-function installddos()
-{
-	if [ -d '/usr/local/ddos' ]; then
-		echo -e "${Tip}DDOS 已经安装，若要重新安装请首先卸载之前的 DDOS 版本."
-	else
-		mkdir /usr/local/ddos
-
-		echo -e "${Info}正在安装 DDOS";
-		rm -f /usr/local/ddos/ddos.conf 
-		rm -f /usr/local/ddos/ignore.ip.list
-		rm -f /usr/local/ddos/ddos.sh
-
-		wget -N --no-check-certificate -q -O /usr/local/ddos/ddos.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.conf
-		wget -N --no-check-certificate -q -O /usr/local/ddos/ignore.ip.list https://raw.githubusercontent.com/programs/scripts/master/vps/config/ignore.ip.list
-		wget -N --no-check-certificate -q -O /usr/local/ddos/ddos.sh https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.sh
-		chmod 0755 /usr/local/ddos/ddos.sh
-		cp -s /usr/local/ddos/ddos.sh /usr/local/sbin/ddos
-
-		echo -e "${Info}按照默认设置 DDOS 运行任务....."
-		/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
-		echo -e "${Info}DDOS 安装完成."
-	fi
-}
-
 function createSwap()
 {
 	need_swap=''
@@ -170,9 +132,9 @@ function createSwap()
 		if [ ! -z "${tmpswapfile}" ]; then
 
 			echo -e "${Info}正在移除原有交换分区..."
-			swapoff ${tmpswapfile} > /dev/null 2>&1
+			[[ -f ${tmpswapfile} ]] && swapoff ${tmpswapfile} > /dev/null 2>&1
 			sleep 2s
-			rm -f ${tmpswapfile}
+			[[ -f ${tmpswapfile} ]] && rm -f ${tmpswapfile}
 
 			delSwapfile=`echo ${tmpswapfile} | sed 's#\/#\\\/#g'`
 			[[ ! -z "${delSwapfile}" ]] && sed -i "/${delSwapfile}/d" /etc/fstab
@@ -182,16 +144,16 @@ function createSwap()
 		echo -e "${Info}当前系统交换分区已存在，大小为${GreenFont} ${swap_size}M ${FontEnd}"
 
 		swap_file=`swapon -s | grep -v 'Filename' | grep -v 'dev' | awk '{print $1}'`
-		if [ -f ${swap_file} ]; then
+		if [ ! -z "${swap_file}" && -f ${swap_file} ]; then
 			stty erase '^H' && read -p "是否重新创建交换分区? [Y/n] :" ynt
 			[[ -z "${ynt}" ]] && ynt="y"
 			if [[ $ynt == [Yy] ]]; then
 				swapfile=${swap_file}
 
 				echo -e "${Info}正在移除原有交换分区..."
-				swapoff ${swap_file} > /dev/null 2>&1
+				[[ -f ${swap_file} ]] && swapoff ${swap_file} > /dev/null 2>&1
 				sleep 2s
-				rm -f ${swap_file}
+				[[ -f ${swap_file} ]] && rm -f ${swap_file}
 
 				delSwapfile=`echo ${swap_file} | sed 's#\/#\\\/#g'`
 				[[ ! -z "${delSwapfile}" ]] && sed -i "/${delSwapfile}/d" /etc/fstab
@@ -207,7 +169,8 @@ function createSwap()
 		[[ -z "${inputsize}" ]] && inputsize=`expr ${tram_size} - 100`
 		dd if=/dev/zero of=${swapfile} bs=${inputsize}M count=1
 
-		swapsize=`du -b ${swapfile} | awk '{print $1}'`
+		swapsize=0
+		[[ ! -z "${swap_file}" ]] && swapsize=`du -b ${swapfile} | awk '{print $1}'`
 		if [ ! ${swapsize} -eq 0 ]; then
 
 			chmod 600 ${swapfile}
@@ -233,37 +196,90 @@ function createSwap()
 	fi
 }
 
+function updateSystem()
+{
+	apt-get update > /dev/null 2>&1
+	
+	stty erase '^H' && read -p "是否需要更新系统 ? [y/N] :" yn
+	[[ -z "${yn}" ]] && yn="n"
+	if [[ $yn == [Yy] ]]; then
+		echo -e "${Info}正在更新系统..."
+		apt-get upgrade -y
+		echo -e "${Info}更新系统完成."
+	fi
+}
+
+function installddos()
+{
+	if [ -d '/usr/local/ddos' ]; then
+		echo -e "${Tip}DDOS 已经安装，若要重新安装请首先卸载之前的 DDOS 版本."
+	else
+		mkdir /usr/local/ddos
+
+		echo -e "${Info}正在安装 DDOS";
+		[[ -f /usr/local/ddos/ddos.conf ]] && rm -f /usr/local/ddos/ddos.conf 
+		[[ -f /usr/local/ddos/ignore.ip.list ]] && rm -f /usr/local/ddos/ignore.ip.list
+		[[ -f /usr/local/ddos/ddos.sh ]] && rm -f /usr/local/ddos/ddos.sh
+
+		wget -N --no-check-certificate -q -O /usr/local/ddos/ddos.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.conf
+		wget -N --no-check-certificate -q -O /usr/local/ddos/ignore.ip.list https://raw.githubusercontent.com/programs/scripts/master/vps/config/ignore.ip.list
+		wget -N --no-check-certificate -q -O /usr/local/ddos/ddos.sh https://raw.githubusercontent.com/programs/scripts/master/vps/config/ddos.sh
+		chmod 0755 /usr/local/ddos/ddos.sh
+		cp -s /usr/local/ddos/ddos.sh /usr/local/sbin/ddos
+
+		echo -e "${Info}按照默认设置 DDOS 运行任务....."
+		/usr/local/ddos/ddos.sh --cron > /dev/null 2>&1
+		echo -e "${Info}DDOS 安装完成."
+	fi
+}
+
+function do_ssripv6()
+{
+	if [ ! -f /etc/init.d/ssrmu ]; then
+		echo -e "${Error}检测到未安装 SSR，请安装之后再试!" && exit 1
+	fi
+
+	apt-get install -y --no-install-recommends jq
+	stty erase '^H' && read -p "SSR 是否使用 IPv6 配置? [Y/n] :" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		ipv6flag='true'
+		[[ -f /etc/sysctl.d/99-ubuntu-ipv6.conf ]] && mv /etc/sysctl.d/99-ubuntu-ipv6.conf /etc/sysctl.d/99-ubuntu-ipv6
+	else
+		ipv6flag='false'
+		[[ -f /etc/sysctl.d/99-ubuntu-ipv6 ]] && mv /etc/sysctl.d/99-ubuntu-ipv6 /etc/sysctl.d/99-ubuntu-ipv6.conf
+	fi
+
+	echo "path /usr/local/shadowsocksr/user-config.json"
+	cat /usr/local/shadowsocksr/user-config.json |
+		jq 'to_entries | 
+			map(if .key == "dns_ipv6" 
+				then . + {"value":'${ipv6flag}'} 
+				else . 
+				end
+				) | 
+			from_entries'
+	PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
+    [[ ! -z ${PID} ]] && /etc/init.d/ssrmu stop
+    /etc/init.d/ssrmu start
+	service procps reload
+	echo -e "${Info}已完成 SSR IPv6 配置!"
+}
+
 function setupSsrmu()
 {
-	apt-get install -y --no-install-recommends jq
-
 	if [ ! -s /usr/local/shadowsocksr/user-config.json ]; then
 		echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
-		rm -f /home/bin/ssrmu.sh
+		[[ -f /home/bin/ssrmu.sh ]] && rm -f /home/bin/ssrmu.sh
 		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${ssrmu_url}
 		chmod +x /home/bin/ssrmu.sh
 		/home/bin/ssrmu.sh
 
-		rm -f /usr/local/shadowsocksr/user-config.json
+		sleep 1s
+		[[ -f /usr/local/shadowsocksr/user-config.json ]] && rm -f /usr/local/shadowsocksr/user-config.json
 		wget -N --no-check-certificate -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
 
-		stty erase '^H' && read -p "SSR 是否使用 IPv6 配置? [Y/n] :" yn
-		[[ -z "${yn}" ]] && yn="y"
-		if [[ $yn == [Yy] ]]; then
-			ipv6flag='true'
-			#/usr/local/shadowsocksr/user-config.json -> "dns_ipv6": false,
-			cat /usr/local/shadowsocksr/user-config.json |
-				jq 'to_entries | 
-					map(if .key == "dns_ipv6" 
-						then . + {"value":'${ipv6flag}'} 
-						else . 
-						end
-						) | 
-					from_entries'
-			
-			rm -f /etc/sysctl.d/99-ubuntu-ipv6.conf
-			service procps reload
-		fi
+		do_ssripv6
 		echo -e "${Info}SSR 已完成安装."
 	else
 		echo -e "${Info}SSR 已安装."
@@ -274,13 +290,14 @@ function installFrp()
 {
 	echo -e "${Info}正在安装 FRP ..."
 
+	apt-get install -y --no-install-recommends supervisor
 	if [ ! -d /home/frp ]; then
 		mkdir -p /home/frp
 	fi
 
-	rm -f /home/frp/frps
-	rm -f /home/frp/frpstart
-	rm -f /home/frp/frps.ini
+	[[ -f /home/frp/frps ]] && rm -f /home/frp/frps
+	[[ -f /home/frp/frpstart ]] && rm -f /home/frp/frpstart
+	[[ -f /home/frp/frps.ini ]] && rm -f /home/frp/frps.ini
 
 	wget -N --no-check-certificate -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
 	wget -N --no-check-certificate -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
@@ -290,12 +307,29 @@ function installFrp()
 
 		chmod +x /home/frp/frps
 		chmod +x /home/frp/frpstart
+
+		[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
+		wget -N --no-check-certificate -q -O /etc/supervisor/conf.d/frp.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/frp.conf
+		systemctl restart supervisor
+		sleep 1s
+		supervisorctl status
 		echo -e "${Info}FRP 安装完成."
 
 		do_frpsecurity
 	else
 		echo -e "${Error}FRP 安装出错."
 	fi 
+}
+
+function do_setupssr()
+{
+	# SSR && FRP
+	stty erase '^H' && read -p "是否需要安装SSR 以及使用 FRP 于80端口隐藏? [Y/n]:" yn
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		setupSsrmu
+		installFrp
+	fi
 }
 
 function setupServices()
@@ -307,23 +341,17 @@ function setupServices()
 	sleep 1s
 	echo -e "${Info}正在下载源文件..."
 	
-	rm -f /etc/ssh/sshd_config
-	rm -f /etc/fail2ban/jail.conf
-	rm -f /etc/supervisor/conf.d/frp.conf
-	rm -f /etc/iptables.up.rules
+	[[ -f /etc/ssh/sshd_config ]] && rm -f /etc/ssh/sshd_config
+	[[ -f /etc/fail2ban/jail.conf ]] && rm -f /etc/fail2ban/jail.conf
+	[[ -f /etc/iptables.up.rules ]] && rm -f /etc/iptables.up.rules
 
 	wget -N --no-check-certificate -q -O /etc/ssh/sshd_config https://raw.githubusercontent.com/programs/scripts/master/vps/config/sshd_config
 	wget -N --no-check-certificate -q -O /etc/fail2ban/jail.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/jail.conf
-	wget -N --no-check-certificate -q -O /etc/supervisor/conf.d/frp.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/frp.conf
 	wget -N --no-check-certificate -q -O /etc/iptables.up.rules https://raw.githubusercontent.com/programs/scripts/master/vps/config/iptables.up.rules
 
 	service sshd restart
 	service fail2ban restart
-	sleep 1s
 	fail2ban-client status
-	systemctl restart supervisor
-	sleep 1s
-	supervisorctl status
 	iptables-restore < /etc/iptables.up.rules
 
 	echo -e "${Info}系统软件安装完成."
@@ -342,25 +370,25 @@ function setupBBR()
 function do_install()
 {
 	doinstall='true'
+
 	configRoot
+	createUser
 	createSwap
 	updateSystem
-	createUser
 	installddos
-	setupSsrmu
-	installFrp
+	do_setupssr
 	setupServices
-	setupBBR	
+	setupBBR
 }
 
 function do_speedtest()
 {
-	rm -f /home/bin/zbanch.sh
+	[[ -f /home/bin/zbanch.sh ]] && rm -f /home/bin/zbanch.sh
 	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh ${zbanch_url}
 	chmod +x /home/bin/zbanch.sh
 	/home/bin/zbanch.sh
 
-	rm -f /home/bin/superbench.sh
+	[[ -f /home/bin/superbench.sh ]] && rm -f /home/bin/superbench.sh
 	wget -N --no-check-certificate -q -O /home/bin/superbench.sh ${sbanch_url}
 	chmod +x /home/bin/superbench.sh
 
@@ -375,7 +403,6 @@ function do_speedtest()
 function do_bbrstatus()
 {
 	if [ ! -f /home/bin/bbr.sh ]; then
-		rm -f /home/bin/bbr.sh
 		wget -N --no-check-certificate -q -O /home/bin/bbr.sh https://raw.githubusercontent.com/programs/scripts/master/vps/bbr.sh
 		chmod +x /home/bin/bbr.sh
 	fi
@@ -389,6 +416,7 @@ function do_ssrstatus()
 	#curl -4 icanhazip.com
 
 	ipaddr=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
+	[[ -z "${ipaddr}" ]] && ipaddr=`curl -4 icanhazip.com`
 	echo -e "${Info}当前IP : ${GreenFont}${ipaddr}${FontEnd}"
 
 	ssr_folder="/usr/local/shadowsocksr"
@@ -530,7 +558,7 @@ function do_frpsecurity()
 	echo -e "${Tip}当前 FRP 访问命牌:${GreenFont} ${privilegetoken} ${FontEnd}"
 }
 
-function do_sshkeys()
+function do_ensshkeys()
 {
 	username=`whoami`
 	if [ "${username}" == "root" ]; then
@@ -550,7 +578,7 @@ function do_sshkeys()
 		if [ -d ~/.ssh ]; then
 			echo -e "${Tip}正在配置 SSH 授权密钥环境..."
 
-			rm -f ~/.ssh/authorized_keys
+			[[ ~/.ssh/authorized_keys ]] && rm -f ~/.ssh/authorized_keys
 			wget -N --no-check-certificate -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
 			
 			${fsudo} chmod 400 ~/.ssh/authorized_keys
@@ -600,12 +628,12 @@ echo "net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1" | tee /etc/sysctl.d/99-ubuntu-ipv6.conf
 		service procps reload
-		echo -e "${Tip}已禁用 IPv6."
+		echo -e "${Tip}系统已禁用 IPv6."
 		
 	else
-		rm -f /etc/sysctl.d/99-ubuntu-ipv6.conf
+		[[ -f /etc/sysctl.d/99-ubuntu-ipv6.conf ]] && rm -f /etc/sysctl.d/99-ubuntu-ipv6.conf
 		service procps reload
-		echo -e "${Tip}已删除 IPv6 的禁用!"
+		echo -e "${Tip}系统已启用 IPv6 !"
 	fi
 }
 
@@ -716,7 +744,7 @@ function do_makedocker()
 	${fsudo} usermod -aG docker ${dockeruser}
 
 	# https://github.com/docker/compose/releases
-	${fsudo} rm -f /usr/local/bin/docker-compose
+	[[ -f /usr/local/bin/docker-compose ]] && ${fsudo} rm -f /usr/local/bin/docker-compose
 	${fsudo} curl -fsSL https://github.com/docker/compose/releases/download/1.23.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
 	${fsudo} chmod +x /usr/local/bin/docker-compose
 
@@ -822,8 +850,15 @@ function do_lnmpsite()
 
 function do_update()
 {
-	rm -f /usr/bin/vps && wget -N --no-check-certificate -q -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps && clear && vps
+	[[ -f /usr/bin/vps ]] && rm -f /usr/bin/vps 
+	wget -N --no-check-certificate -q -O /usr/bin/vps https://raw.githubusercontent.com/programs/scripts/master/vps/setup.sh && chmod +x /usr/bin/vps 
+	clear && vps
 	echo -e "${Info}更新程序到最新版本 完成!"
+}
+
+function do_version()
+{
+	echo -e "${GreenFont}${0##*/}${FontEnd} V 1.0.0 "
 }
 
 #主程序入口
@@ -840,12 +875,12 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	install | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | setupssr | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
-	sshkeys)
-	do_sshkeys
+	ensshkeys)
+	do_ensshkeys
 	;;
 	bansshkey)
 	do_bansshkey
@@ -854,29 +889,43 @@ case "$action" in
 	echo " "
 	echo -e "用法: ${GreenFont}${0##*/}${FontEnd} [指令]"
 	echo "指令:"
-	echo "    install    -- 安装并初始化VPS环境"
 	echo "    update     -- 更新程序到最新版本"
-	echo "    makedocker -- 生成 DOCKER 运行环境"
-	echo "    redoswap   -- 创建或重建交换分区"
-	echo "    lnmpsite   -- 部署 LNMP 网站 (DOCKER环境)"
-	echo "    uninsdocker-- 移除 DOCKER 运行环境"
-	echo "    speedtest  -- 测试网络速度"
+	echo "    version    -- 显示版本信息"
+	echo ""
+	echo -e " -- ${GreenFont}初始化${FontEnd} --"
+	echo "    install    -- 安装并初始化 VPS 环境"
 	echo "    bbrstatus  -- 查看 BBR 状态"
-	echo "    ssrstatus  -- 查看 SSR 状态"
-	echo "    ssrmu      -- 运行 SSR 修改或增加配置"
+	echo "    speedtest  -- 测试网络速度"
+	echo "    qsecurity  -- 查询本地安全信息"
+	echo ""
+	echo "    ensshkeys  -- 配置 SSH 登陆使用授权密钥   (须非ROOT用户环境)"
+	echo "    bansshkey  -- 允许 SSH 登陆不使用授权密钥 (须非ROOT用户环境)"
+	echo ""
+	echo -e " -- ${GreenFont}系统${FontEnd} --"
+	echo "    redoswap   -- 创建或重建交换分区"
 	echo "    sysupgrade -- 系统更新"
 	echo "    adduser    -- 新增用户"
 	echo "    deluser    -- 删除用户"
-	echo "    iptable    -- 修改防火墙"
+	echo "    iptable    -- 修改 防火墙"
 	echo "    configssh  -- 修改 SSH 配置"
-	echo "    qsecurity  -- 查询本地安全信息"
+	echo "    enableipv6 -- 开关系统 IPv6"
+	echo ""
+	echo -e " -- ${GreenFont}虚拟化${FontEnd} --"
+	echo "    makedocker -- 生成 DOCKER 运行环境"
+	echo "    uninsdocker-- 移除 DOCKER 运行环境"
+	echo "    lnmpsite   -- 部署 LNMP 网站 (DOCKER环境)"
+	echo ""
+	echo -e " -- ${GreenFont}看世界${FontEnd} --"
+	echo "    setupssr   -- 安装并初始化 SSR 环境"
+	echo "    ssrmu      -- 运行 SSR 修改或增加配置"
+	echo "    ssripv6    -- 开关 SSR 的 IPv6"
+	echo "    ssrstatus  -- 查看 SSR 状态"
 	echo "    editfrp    -- 修改 FRP 配置"
 	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
-	echo "    enableipv6 -- 开关 IPv6"
+	echo ""
+	echo -e " -- ${GreenFont}监控${FontEnd} --"
 	echo "    nodequery  -- 增加 nodequery 监控"
 	echo "    removenq   -- 移除 nodequery 监控"
-	echo "    sshkeys    -- 配置 SSH 登陆使用授权密钥 (须非ROOT用户环境)"
-	echo "    bansshkey  -- 允许 SSH 登陆不使用授权密钥 (须非ROOT用户环境)"
 	echo " "
 	;;
 esac
