@@ -251,7 +251,7 @@ function do_ssripv6()
 	fi
 
 	userconfig='/usr/local/shadowsocksr/user-config.json'
-	echo -e "${Info}path ${GreenFont}${userconfig}${FontEnd}"
+	echo -e "${Info} Path ${GreenFont}${userconfig}${FontEnd}"
 	usercontent=`cat ${userconfig} | \
 		jq 'to_entries | \
 			map(if .key == "dns_ipv6" \
@@ -858,8 +858,26 @@ function do_update()
 	echo -e "${Info}更新程序到最新版本 完成!"
 }
 
-function do_version()
+function do_uninsssr()
 {
+	/home/bin/ssrmu.sh
+
+	ssr_folder='/usr/local/shadowsocksr'
+	if [ ! -e ${ssr_folder} ]; then 
+		if [ -f /etc/supervisor/conf.d/frp.conf ]; then
+			echo -e "${Info}正在移除 FRP 环境"
+			
+			systemctl stop supervisor
+			apt-get remove -y supervisor
+			[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
+			[[ -d /home/frp ]] && rm -rf /home/frp
+
+			echo -e "${Info}SSR 及其 FRP 环境已全部移除！"
+		fi
+	fi
+}
+
+function do_version() {
 	echo -e "${GreenFont}${0##*/}${FontEnd} V 1.0.0 "
 }
 
@@ -877,7 +895,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | setupssr | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | setupssr | uninsssr | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -919,6 +937,7 @@ case "$action" in
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
+	echo "    uninsssr   -- 移除 SSR 及其 FRP 环境"
 	echo "    ssrmu      -- 运行 SSR 修改或增加配置"
 	echo "    ssripv6    -- 开关 SSR 的 IPv6"
 	echo "    ssrstatus  -- 查看 SSR 状态"
