@@ -250,15 +250,16 @@ function do_ssripv6()
 		[[ -f /etc/sysctl.d/99-ubuntu-ipv6 ]] && mv /etc/sysctl.d/99-ubuntu-ipv6 /etc/sysctl.d/99-ubuntu-ipv6.conf
 	fi
 
-	echo "path /usr/local/shadowsocksr/user-config.json"
-	cat /usr/local/shadowsocksr/user-config.json |
+	userconfig='/usr/local/shadowsocksr/user-config.json'
+	echo -e "${Info}path ${GreenFont}已安装${FontEnd}"
+	cat ${userconfig} |
 		jq 'to_entries | 
 			map(if .key == "dns_ipv6" 
 				then . + {"value":'${ipv6flag}'} 
 				else . 
 				end
 				) | 
-			from_entries'
+			from_entries' > ${userconfig}
 	PID=`ps -ef |grep -v grep | grep server.py |awk '{print $2}'`
     [[ ! -z ${PID} ]] && /etc/init.d/ssrmu stop
     /etc/init.d/ssrmu start
