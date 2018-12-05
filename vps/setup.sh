@@ -879,7 +879,6 @@ function checkdocker()
 
 function do_vrayworld()
 {
-	echo -e "${Tip}暂时无法支持基于DOCKER的 V2Ray 环境！" && exit 1
 	checkdocker
 	echo -e "${Info}正在部署基于DOCKER的 V2Ray 环境 ..."
 
