@@ -911,24 +911,28 @@ function do_vrayworld()
 
 		if [ ! -f /home/vraworld/.passwd ]; then
 
-			dynapwd8p=`cat /dev/urandom | head -n 8 | md5sum | head -c 8`
-			dynapwd12p=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
+			tmpuuid=$(cat /proc/sys/kernel/random/uuid)
+			read -p "请输入UUID (默认为${GreenBack} ${tmpuuid} ${FontEnd}):" randuuid
+			[[ -z "${randuuid}" ]] && randuuid=${tmpuuid}
+
+			read -p "请输入alterid (默认为${GreenBack} 32 ${FontEnd}):" alterid 
+			[[ -z "${alterid}" ]] && alterid=32
 
 			config=" \
-UUID_8p=${dynapwd8p} \
-UUID_12p=${dynapwd12p}"
+UUID_p=${randuuid} \
+ALTERID_p=${alterid}"
 			templ=`cat /home/vraworld/docker-compose.yml`
 			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/vraworld/docker-compose.yml
 
 			echo -e "${Tip}请牢记以下连接信息"
 			echo -e "${Info}端口${GreenBack} 80|443 ${FontEnd}"
-			echo -e "${Info}UUID${GreenBack} ${dynapwd8p}-8c09-485a-8dda-${dynapwd12p} ${FontEnd}"
-			echo -e "${Info}alterid${GreenBack} 32 ${FontEnd}"
+			echo -e "${Info}UUID${GreenBack} ${randuuid} ${FontEnd}"
+			echo -e "${Info}alterid${GreenBack} ${alterid} ${FontEnd}"
 			echo -e "${Info}协议${GreenBack} ws ${FontEnd}"
 			echo -e "${Info}ws域名${GreenBack} www.redhat.com ${FontEnd}"
 			echo -e "${Info}ws路径${GreenBack} /api/ ${FontEnd}"
 
-			touch /home/www/vraworld/.passwd
+			touch /home/vraworld/.passwd
 		fi
 
 		cd /home/vraworld
