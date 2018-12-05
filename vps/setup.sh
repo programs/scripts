@@ -912,7 +912,7 @@ function do_vrayworld()
 		if [ ! -f /home/vraworld/.passwd ]; then
 
 			dynapwd8p=`cat /dev/urandom | head -n 8 | md5sum | head -c 8`
-			dynapwd13p=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
+			dynapwd12p=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
 
 			config=" \
 UUID_8p=${dynapwd8p} \
@@ -928,7 +928,7 @@ UUID_12p=${dynapwd12p}"
 			echo -e "${Info}ws域名${GreenBack} www.redhat.com ${FontEnd}"
 			echo -e "${Info}ws路径${GreenBack} /api/ ${FontEnd}"
 
-			touch /home/www/mysql/.passwd
+			touch /home/www/vraworld/.passwd
 		fi
 
 		cd /home/vraworld
