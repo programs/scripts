@@ -405,6 +405,26 @@ function do_setupvray()
 		echo -e "${Info}V2Ray 已安装."
 		echo -e "${Info}如果需要重新安装，请执行命令${GreenFont} v2ray.sh ${FontEnd}"
 	fi
+
+	echo -e "${Info}${GreenFont}v2ray.sh${FontEnd} 命令参考 --
+
+v2ray.sh info       查看 V2Ray 配置信息
+v2ray.sh config     修改 V2Ray 配置
+v2ray.sh link       生成 V2Ray 配置文件链接
+v2ray.sh infolink   生成 V2Ray 配置信息链接
+v2ray.sh qr         生成 V2Ray 配置二维码链接
+v2ray.sh ss         修改 Shadowsocks 配置
+v2ray.sh ssinfo     查看 Shadowsocks 配置信息
+v2ray.sh ssqr       生成 Shadowsocks 配置二维码链接
+v2ray.sh status     查看 V2Ray 运行状态
+v2ray.sh start      启动 V2Ray
+v2ray.sh stop       停止 V2Ray
+v2ray.sh restart    重启 V2Ray
+v2ray.sh log        查看 V2Ray 运行日志
+v2ray.sh update     更新 V2Ray
+v2ray.sh update.sh  更新 V2Ray 管理脚本
+v2ray.sh uninstall  卸载 V2Ray
+"
 }
 
 function setupServices()
