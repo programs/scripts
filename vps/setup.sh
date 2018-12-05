@@ -19,11 +19,12 @@ defaultuser='adminer'
 doinstall='false'
 
 # 第三方URL定义
-ssrmu_url='https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh'
-zbanch_url='https://raw.githubusercontent.com/FunctionClub/ZBench/master/ZBench-CN.sh'
-sbanch_url='https://raw.githubusercontent.com/oooldking/script/master/superbench.sh'
-ipaddr_url='https://www.bt.cn/Api/getIpAddress'
-nodequery_url='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
+url_ssrmu='https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/ssrmu.sh'
+url_zbanch='https://raw.githubusercontent.com/FunctionClub/ZBench/master/ZBench-CN.sh'
+url_sbanch='https://raw.githubusercontent.com/oooldking/script/master/superbench.sh'
+url_ipaddr='https://www.bt.cn/Api/getIpAddress'
+url_nodequery='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
+url_v2ray='https://233blog.com/v2ray.sh'
 
 function checkRoot()
 {
@@ -268,12 +269,66 @@ function do_ssripv6()
 	echo -e "${Info}已完成 SSR IPv6 配置!"
 }
 
+function do_ssrmdport()
+{
+	if [ ! -f /etc/init.d/ssrmu ]; then
+		echo -e "${Error}检测到未安装 SSR，请安装之后再试!" && exit 1
+	fi
+
+	apt-get install -y --no-install-recommends jq
+	userconfig='/usr/local/shadowsocksr/user-config.json'
+
+	ssrmdport='do'
+	stty erase '^H' && read -p "请输入 SSR 的端口号? (回车，单用户情况可自动获取):" ssr_port
+	if [ -z "${ssr_port}" ]; then
+		count=`python /usr/local/shadowsocksr/mujson_mgr.py -l | wc -l`
+		if [ ${count} -eq 1 ]; then
+			ssr_port=`python /usr/local/shadowsocksr/mujson_mgr.py -l | grep port | awk '{print $4}'`
+		else
+			echo -e "${Tip}当前 SSR 存在多用户，暂不支持设置端口，请手动设置否则可能无法使用！"
+			echo -e "${Tip}默认设置为${GreenBack} 80 ${FontEnd}端口，如果设置了与此不同的端口，请手动修正！"
+			echo -e "${Tip}  1. 修改 ${userconfig} -> 中的${GreenFont} server_port${FontEnd};"
+			echo -e "${Tip}  2. 修改 ${userconfig} -> 中的${GreenFont} redirect${FontEnd};"
+			echo -e "${Tip}  3. 修改 iptable 防火墙对应端口."
+			ssrmdport=''
+		fi
+	fi
+
+	if [ "x${ssrmdport}" == "xdo" ]; then
+
+		redirect="[ \"*:${ssr_port}#127.0.0.1:8070\" ]"
+		echo -e "${Info} Path ${GreenFont}${userconfig}${FontEnd}"
+		usercontent=`cat ${userconfig} | \
+			jq 'to_entries | \
+				map(if .key == "server_port" \
+					then . + {"value":'${ssr_port}'} \
+					else . \
+					end \
+					if .key == "redirect" \
+					then . + {"value":'${redirect}'}
+					else . \
+					end
+					) | \
+				from_entries'`
+		echo ${usercontent} > ${userconfig}
+
+		#iptables -D INPUT -m state --state NEW -m tcp -p tcp --dport ${port} -j ACCEPT
+		#iptables -D INPUT -m state --state NEW -m udp -p udp --dport ${port} -j ACCEPT
+		iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport ${ssr_port} -j ACCEPT
+		iptables -I INPUT -m state --state NEW -m udp -p udp --dport ${ssr_port} -j ACCEPT
+		iptables-save > /etc/iptables.up.rules
+		#iptables-restore < /etc/iptables.up.rules
+
+		echo -e "${Info}已完成 SSR 端口配置!"
+	fi
+}
+
 function setupSsrmu()
 {
 	if [ ! -s /usr/local/shadowsocksr/user-config.json ]; then
-		echo -e "${Info}正在安装 SSR (SSR将安装默认设置自动完成) ..."
+		echo -e "${Info}正在安装 SSR (默认配置为${GreenBack} 80 ${FontEnd}端口) ..."
 		[[ -f /home/bin/ssrmu.sh ]] && rm -f /home/bin/ssrmu.sh
-		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${ssrmu_url}
+		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${url_ssrmu}
 		chmod +x /home/bin/ssrmu.sh
 		/home/bin/ssrmu.sh
 
@@ -281,6 +336,7 @@ function setupSsrmu()
 		[[ -f /usr/local/shadowsocksr/user-config.json ]] && rm -f /usr/local/shadowsocksr/user-config.json
 		wget -N --no-check-certificate -q -O /usr/local/shadowsocksr/user-config.json https://raw.githubusercontent.com/programs/scripts/master/vps/config/user-config.json
 
+		do_ssrmdport
 		do_ssripv6
 		echo -e "${Info}SSR 已完成安装."
 	else
@@ -334,6 +390,23 @@ function do_setupssr()
 	fi
 }
 
+function do_setupvray()
+{
+	if [ ! -s /etc/v2ray/config.json ]; then
+
+		echo -e "${Info}正在安装 V2Ray ..."
+		[[ -f /home/bin/v2ray.sh ]] && rm -f /home/bin/v2ray.sh
+		wget -N --no-check-certificate -q -O /home/bin/v2ray.sh ${url_v2ray}
+		chmod +x /home/bin/v2ray.sh
+		/home/bin/v2ray.sh
+
+		echo -e "${Info}V2Ray 已完成安装."
+	else
+		echo -e "${Info}V2Ray 已安装."
+		echo -e "${Info}如果需要重新安装，请执行命令${GreenFont} v2ray.sh ${FontEnd}"
+	fi
+}
+
 function setupServices()
 {
 	sleep 1s
@@ -378,20 +451,20 @@ function do_install()
 	createSwap
 	updateSystem
 	installddos
-	do_setupssr
 	setupServices
+	do_setupssr
 	setupBBR
 }
 
 function do_speedtest()
 {
 	[[ -f /home/bin/zbanch.sh ]] && rm -f /home/bin/zbanch.sh
-	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh ${zbanch_url}
+	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh ${url_zbanch}
 	chmod +x /home/bin/zbanch.sh
 	/home/bin/zbanch.sh
 
 	[[ -f /home/bin/superbench.sh ]] && rm -f /home/bin/superbench.sh
-	wget -N --no-check-certificate -q -O /home/bin/superbench.sh ${sbanch_url}
+	wget -N --no-check-certificate -q -O /home/bin/superbench.sh ${url_sbanch}
 	chmod +x /home/bin/superbench.sh
 
 	stty erase '^H' && read -p "是否需要进一步进行网络测试? [Y/n]:" yn
@@ -417,7 +490,7 @@ function do_ssrstatus()
 	#ipaddr=`ip addr show eth0 | grep inet | awk '{ print $2; }' | sed 's/\/.*$//' | grep -v ':'`
 	#curl -4 icanhazip.com
 
-	ipaddr=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
+	ipaddr=`curl -sS --connect-timeout 10 -m 60 ${url_ipaddr}`
 	[[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=`curl -sS -4 icanhazip.com`
 	echo -e "${Info}当前IP : ${GreenFont}${ipaddr}${FontEnd}"
 
@@ -437,7 +510,7 @@ function do_ssrstatus()
 function do_ssrmu()
 {
 	if [ ! -f /home/bin/ssrmu.sh ]; then
-		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${ssrmu_url}
+		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${url_ssrmu}
 		chmod +x /home/bin/ssrmu.sh
 	fi 
 	/home/bin/ssrmu.sh	
@@ -572,7 +645,7 @@ function do_ensshkeys()
 		echo ${userpwd} | sudo -S apt-get update
 
 		#rm -f ~/.ssh/known_hosts
-		#address=`curl -sS --connect-timeout 10 -m 60 ${ipaddr_url}`
+		#address=`curl -sS --connect-timeout 10 -m 60 ${url_ipaddr}`
 		#sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
 		#echo 'yes' | ${fsudo} ssh root@${address} -p ${sshPort} 
 		mkdir ~/.ssh
@@ -646,7 +719,7 @@ function do_nodequery()
 
 		nq_file='/home/bin/nq-install.sh'
 		rm -f ${nq_file}
-		wget -N --no-check-certificate -q -O ${nq_file} ${nodequery_url} && bash ${nq_file} ${nodetoken}
+		wget -N --no-check-certificate -q -O ${nq_file} ${url_nodequery} && bash ${nq_file} ${nodetoken}
 
 		echo -e "${Info}为本地成功分配 NodeQuery."
 
@@ -774,15 +847,154 @@ function do_makedocker()
 	echo -e "${Info}已完成 DOCKER 运行环境的配置!"
 }
 
-function do_lnmpsite()
+function checkdocker()
 {
 	if [ ! -f /usr/bin/docker ]; then
 		echo -e "${Error}请先安装 Docker 运行环境!" && exit 1
 	fi
 
-	echo -e "${Info}正在部署 LNMP 网站 (DOCKER环境) ..."
 	${fsudo} apt-get update
 	${fsudo} apt-get install -y --no-install-recommends git
+}
+
+function do_vrayworld()
+{
+	echo -e "${Tip}暂时无法支持基于DOCKER的 V2Ray 环境！" && exit 1
+	checkdocker
+	echo -e "${Info}正在部署基于DOCKER的 V2Ray 环境 ..."
+
+	currpath=`pwd`
+	if [ -d /home/vraworld ]; then
+		stty erase '^H' && read -p "发现本地已存在基于DOCKER的 V2Ray 环境，是否进行备份? [y/N]:" yn
+		[[ -z "${yn}" ]] && yn="n"
+		if [[ $yn == [Yy] ]]; then
+			${fsudo} mkdir -p /home/backworld
+			${fsudo} tar zcvf /home/backworld/vray`date +%Y%m%d.%H%M%S`.tar.gz /home/vraworld
+			${fsudo} rm -rf /home/vraworld
+		fi
+	fi
+
+	if [ -d /home/vraworld ]; then
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 V2Ray 环境并重新部署? [Y/n]:" ynt
+		[[ -z "${ynt}" ]] && ynt="y"
+		if [[ $ynt == [Yy] ]]; then
+			${fsudo} rm -rf /home/vraworld
+		fi
+	fi
+
+	if [ ! -d /home/vraworld ]; then
+		cd /home
+		${fsudo} git clone https://github.com/gorouter/zraypro.git
+		${fsudo} mv /home/zraypro  /home/vraworld
+	fi
+
+	if [ -f /home/vraworld/docker-compose.yml ]; then
+
+		if [ ! -f /home/vraworld/.passwd ]; then
+
+			config="MySQLpwd=${dbngpwd}"
+			templ=`cat /home/vraworld/docker-compose.yml`
+			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/vraworld/docker-compose.yml
+
+			touch /home/www/mysql/.passwd
+		fi
+
+		cd /home/vraworld
+		docker-compose up
+		echo -e "${Info}V2Ray 环境部署完成."
+	else
+		echo -e "${Info}V2Ray 环境部署失败，请检查！."
+	fi
+	cd ${currpath}
+}
+
+function do_ssrworld()
+{
+	checkdocker
+	echo -e "${Info}正在部署基于DOCKER的 SSR 环境 ..."
+
+	echo -e "${Tip}在 DOCKER 环境下运行 SSR 暂时无法支持 IPv6！"
+	stty erase '^H' && read -p "是否继续部署? [Y/n]:" ynn
+	[[ -z "${ynn}" ]] && ynn="y"
+	if [[ $ynn == [Nn] ]]; then
+		echo -e "${Info}部署基于DOCKER的 SSR 环境 被中止！" && exit 1
+	fi
+
+	currpath=`pwd`
+	if [ -d /home/ssrworld ]; then
+		stty erase '^H' && read -p "发现本地已存在基于DOCKER的 SSR 环境，是否进行备份? [y/N]:" yn
+		[[ -z "${yn}" ]] && yn="n"
+		if [[ $yn == [Yy] ]]; then
+			${fsudo} mkdir -p /home/backworld
+			${fsudo} tar zcvf /home/backworld/ssr`date +%Y%m%d.%H%M%S`.tar.gz /home/ssrworld
+			${fsudo} rm -rf /home/ssrworld
+		fi
+	fi
+
+	if [ -d /home/ssrworld ]; then
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 SSR 环境并重新部署? [Y/n]:" ynt
+		[[ -z "${ynt}" ]] && ynt="y"
+		if [[ $ynt == [Yy] ]]; then
+			${fsudo} rm -rf /home/ssrworld
+		fi
+	fi
+
+	if [ ! -d /home/ssrworld ]; then
+		cd /home
+		${fsudo} git clone https://github.com/gorouter/zeropro.git
+		${fsudo} mv /home/zeropro  /home/ssrworld
+	fi
+
+	if [ -f /home/ssrworld/docker-compose.yml ]; then
+
+		if [ ! -f /home/ssrworld/.passwd ]; then
+
+			read -p "请输入访问端口 (默认为${GreenBack} 80 ${FontEnd}):" cfg_port
+			[[ -z "${cfg_port}" ]] && cfg_port='80'
+
+			tmppasswd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
+			read -p "请输入SSR密码 (默认为${GreenBack} ${tmppasswd} ${FontEnd}):" ssr_passwd
+			[[ -z "${ssr_passwd}" ]] && ssr_passwd=${tmppasswd}
+
+			read -p "请输入加密方式 (默认为${GreenBack} none ${FontEnd}):" ssr_chiper
+			[[ -z "${ssr_chiper}" ]] && ssr_chiper='none'
+
+			read -p "请输入加密协议 (默认为${GreenBack} auth_chain_a ${FontEnd}):" ssr_proto
+			[[ -z "${ssr_proto}" ]] && ssr_proto='auth_chain_a'
+
+			read -p "请输入混淆方式 (默认为${GreenBack} http_simple ${FontEnd}):" ssr_obfs
+			[[ -z "${ssr_obfs}" ]] && ssr_obfs='http_simple'
+
+			dashboardpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
+		    privilegetoken=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
+
+			config=" \
+UNIFIED_CFG_PORT_p=${cfg_port} \
+SSRCFG_PASSWD_p=${ssr_passwd} \
+SSRCFG_CIPHER_p=${ssr_chiper} \
+SSRCFG_PROTOCOL_p=${ssr_proto} \
+SSRCFG_OBFS_p=${ssr_obfs} \
+FRP_TOKEN_KEYS_p=${privilegetoken} \
+FRP_DASHBOARD_PASSWD_p=${dashboardpwd} "
+			templ=`cat /home/ssrworld//docker-compose-template.yml`
+			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/ssrworld/docker-compose.yml
+
+			touch /home/www/mysql/.passwd
+		fi
+
+		cd /home/ssrworld
+		docker-compose up
+		echo -e "${Info}SSR 环境部署完成."
+	else
+		echo -e "${Info}SSR 环境部署失败，请检查！."
+	fi
+	cd ${currpath}
+}
+
+function do_lnmpsite()
+{
+	checkdocker
+	echo -e "${Info}正在部署基于DOCKER的 LNMP 网站 ..."
 
 	currpath=`pwd`
 	if [ -d /home/www ]; then
@@ -844,10 +1056,11 @@ function do_lnmpsite()
 		cd /home/www
 		/home/www/lnmpsite up
 		#docker logs mysql
+		echo -e "${Info}LNMP 网站部署完成."
+	else
+		echo -e "${Info}LNMP 网站部署失败，请检查！."
 	fi
-
 	cd ${currpath}
-	echo -e "${Info}LNMP 网站部署完成."
 }
 
 function do_update()
@@ -895,7 +1108,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | setupssr | uninsssr | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -934,15 +1147,20 @@ case "$action" in
 	echo "    makedocker -- 生成 DOCKER 运行环境"
 	echo "    uninsdocker-- 移除 DOCKER 运行环境"
 	echo "    lnmpsite   -- 部署 LNMP 网站 (DOCKER环境)"
+	echo "    ssrworld   -- 部署 SSR  环境 (DOCKER环境)"
+	echo "    vrayworld  -- 部署 V2Ray环境 (DOCKER环境)"
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
 	echo "    uninsssr   -- 移除 SSR 及其 FRP 环境"
 	echo "    ssrmu      -- 运行 SSR 修改或增加配置"
 	echo "    ssripv6    -- 开关 SSR 的 IPv6"
+	echo "    ssrmdport  -- 重新设置 SSR 端口(仅单用户)"
 	echo "    ssrstatus  -- 查看 SSR 状态"
 	echo "    editfrp    -- 修改 FRP 配置"
 	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
+	echo "" 
+	echo "    setupvray  -- 安装并初始化 V2Ray环境"
 	echo ""
 	echo -e " -- ${GreenFont}监控${FontEnd} --"
 	echo "    nodequery  -- 增加 nodequery 监控"
