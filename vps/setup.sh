@@ -912,10 +912,10 @@ function do_vrayworld()
 		if [ ! -f /home/vraworld/.passwd ]; then
 
 			tmpuuid=$(cat /proc/sys/kernel/random/uuid)
-			read -p "请输入UUID (默认为${GreenBack} ${tmpuuid} ${FontEnd}):" randuuid
+			read -p "请输入UUID (默认为 ${tmpuuid}):" randuuid
 			[[ -z "${randuuid}" ]] && randuuid=${tmpuuid}
 
-			read -p "请输入alterid (默认为${GreenBack} 32 ${FontEnd}):" alterid 
+			read -p "请输入alterid (默认为 32):" alterid 
 			[[ -z "${alterid}" ]] && alterid=32
 
 			config=" \
@@ -985,20 +985,20 @@ function do_ssrworld()
 
 		if [ ! -f /home/ssrworld/.passwd ]; then
 
-			read -p "请输入访问端口 (默认为${GreenBack} 80 ${FontEnd}):" cfg_port
+			read -p "请输入访问端口 (默认为 80):" cfg_port
 			[[ -z "${cfg_port}" ]] && cfg_port='80'
 
 			tmppasswd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
-			read -p "请输入SSR密码 (默认为${GreenBack} ${tmppasswd} ${FontEnd}):" ssr_passwd
+			read -p "请输入SSR密码 (默认为 ${tmppasswd}):" ssr_passwd
 			[[ -z "${ssr_passwd}" ]] && ssr_passwd=${tmppasswd}
 
-			read -p "请输入加密方式 (默认为${GreenBack} none ${FontEnd}):" ssr_chiper
+			read -p "请输入加密方式 (默认为 none):" ssr_chiper
 			[[ -z "${ssr_chiper}" ]] && ssr_chiper='none'
 
-			read -p "请输入加密协议 (默认为${GreenBack} auth_chain_a ${FontEnd}):" ssr_proto
+			read -p "请输入加密协议 (默认为 auth_chain_a):" ssr_proto
 			[[ -z "${ssr_proto}" ]] && ssr_proto='auth_chain_a'
 
-			read -p "请输入混淆方式 (默认为${GreenBack} http_simple ${FontEnd}):" ssr_obfs
+			read -p "请输入混淆方式 (默认为 http_simple):" ssr_obfs
 			[[ -z "${ssr_obfs}" ]] && ssr_obfs='http_simple'
 
 			dashboardpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
