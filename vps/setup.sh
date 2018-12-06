@@ -1075,7 +1075,7 @@ function do_wordpress()
 		chmod 755 /home/www/nginx/www
 		find /home/www/nginx/www -type d -exec chmod 755 {} \;
 		find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
-		#chown -R 1000:1000 /home/www/nginx/www
+		#chmod 777 -R /home/www/nginx/www/wp-content
 
 		rm -rf /tmp/wpstable.tar.gz
 
@@ -1100,13 +1100,11 @@ function do_wpupdate()
 		fi
 	else
 		currpath=`pwd`
-		echo -e "${Info}正在处理，请稍等..."
 		cd /home/www
-		/home/www/lnmpsite stop > /dev/null 2>&1
 
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		if [ ! -f /tmp/wpstable.tar.gz ]; then
-		
+
 			stty erase '^H' && read -p "是否升级到最新的英文版本? [y/N]:" yrn
 			[[ -z "${yrn}" ]] && yrn='n'
 			if [[ $yn == [Nn] ]]; then
@@ -1116,6 +1114,10 @@ function do_wpupdate()
 		fi
 
 		if [ -f /tmp/wpstable.tar.gz ]; then
+
+			echo -e "${Info}正在处理，请稍等..."
+			/home/www/lnmpsite stop > /dev/null 2>&1
+
 			cd /tmp/
 			cp /home/www/nginx/www/wp-config.php /tmp/wp-config.php
 			tar -C /tmp -xzvf /tmp/wpstable.tar.gz > /dev/null 2>&1
@@ -1128,7 +1130,7 @@ function do_wpupdate()
 			chmod 755 /home/www/nginx/www
 			find /home/www/nginx/www -type d -exec chmod 755 {} \;
 			find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
-			#chown -R 1000:1000 /home/www/nginx/www
+			#chmod 777 -R /home/www/nginx/www/wp-content
 
 			rm -rf /tmp/wpstable.tar.gz /tmp/wp-config.php
 			rm -rf /tmp/wordpress
@@ -1136,6 +1138,7 @@ function do_wpupdate()
 			/home/www/lnmpsite start > /dev/null 2>&1
 			sleep 2s
 			docker exec nginx bash -c "chown -R nginx:nginx /usr/share/nginx/html"
+			docker exec nginx bash -c "chown -R www:www /usr/share/nginx/html"
 
 			echo -e "${Info}BLOG 网站升级完成，请访问域名${GreenFont} https://域名/wp-admin/upgrade.php ${FontEnd}进行相关设置."
 		fi
