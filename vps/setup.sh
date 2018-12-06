@@ -1099,10 +1099,11 @@ function do_wpupdate()
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
 		cd /tmp/
+		cp /home/www/nginx/www/wp-config.php /tmp/wp-config.php
 		tar -C /tmp -xzvf wpstable.tar.gz > /dev/null 2>&1
 		[[ -d /tmp/wordpress/wp-content ]] && rm -rf /tmp/wordpress/wp-content
-		rm -rf /home/www/nginx/www/wp-includes /home/www/nginx/www/wp-admin
 		cp -R /tmp/wordpress /home/www/nginx/www
+		cp /tmp/wp-config.php /home/www/nginx/www/wp-config.php
 		chmod -R 777 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
 		rm -rf /tmp/wpstable.tar.gz
 		rm -rf /tmp/wordpress
