@@ -1055,6 +1055,9 @@ function do_wordpress()
 
 		#https://cn.wordpress.org/wordpress-4.9.4-zh_CN.tar.gz
 
+		cd /home/www
+		/home/www/lnmpsite stop > /dev/null 2>&1
+
 		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.4):" wpversion
 		[[ -z "${wpversion}" ]] && wpversion='4.9.4'
 
@@ -1067,6 +1070,7 @@ function do_wordpress()
 		chmod -R 755 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
 		rm -rf /tmp/wpstable.tar.gz
 
+		/home/www/lnmpsite start > /dev/null 2>&1
 		echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
 	fi
 
