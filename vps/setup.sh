@@ -1051,12 +1051,19 @@ function do_wordpress()
 		fi
 	fi
 
-	if [ ! -d /home/www/nginx/www ]; then
+	if [ -d /home/www/nginx/www ]; then
+
+		iptables -I INPUT -p tcp -m multiport --dport 20,21 -m state --state NEW -j ACCEPT
+		iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 21 -j ACCEPT
+		iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 30000:30032 -j ACCEPT
+		iptables-save > /etc/iptables.up.rules
+
+		#https://cn.wordpress.org/wordpress-4.9.4-zh_CN.tar.gz
 
 		[[ -f /tmp/latest.tar.gz ]] && rm -f /tmp/latest.tar.gz
 		wget -N --no-check-certificate -q -O /tmp/latest.tar.gz ${url_wordpress}
 		cd /tmp/
-		tar -C /home/www/nginx -xzvf latest.tar.gz
+		tar -C /home/www/nginx -xzvf latest.tar.gz > /dev/null 2>&1
 		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
 		mv /home/www/nginx/wordpress /home/www/nginx/www
 		chmod -R 755 /home/www/nginx/www && chown -R www /home/www/nginx/www
@@ -1104,13 +1111,41 @@ function do_lnmpsite()
 
 		if [ ! -f /home/www/mysql/.passwd ]; then
 
+			/home/www/lnmpsite down > /dev/null 2>&1
+
+			ftppwd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
+			echo -e "${Tip}请设置 FTP 用户(默认为 ${GreenFont}coder${FontEnd})密码"
+			stty erase '^H' && read -p "(回车，默认密码为 ${ftppwd}):" ftppasswd
+			[[ -z "${ftppasswd}" ]] && ftppasswd=${ftppwd}
+
+			# 生成FTP安全数据
+			ftpdsrv=`cat /home/www/docker-compose.yml | grep lnmpsite-ftpd | awk -F 'image:' '{print $2}'`
+			htmlmap='/home/www/nginx/www:/home/ftpusers/coder'
+			pureftp='/home/www/ftpd/pure-ftpd:/etc/pure-ftpd'
+			docker run -d --name seftpd -v ${htmlmap} -v ${pureftp} -e PUBLICHOST=localhost -e FTP_USER=coder -e FTP_PASSWORD=${ftppasswd} ${ftpdsrv}
+			echo -e "${Tip}正在初始化FTP服务，请稍等 ... "
+			sleep 5s
+			docker exec seftpd bash -c "/usr/local/bin/ftpadd"
+			sleep 1s
+			docker stop seftpd > /dev/null 2>&1 && docker rm seftpd > /dev/null 2>&1
+		
+			# 开放端口信息
+			iptables -D INPUT -p tcp -m multiport --dport 20,21 -m state --state NEW -j ACCEPT
+			iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 21 -j ACCEPT
+			iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 30000:30032 -j ACCEPT
+
+			iptables -I INPUT -p tcp -m multiport --dport 20,21 -m state --state NEW -j ACCEPT
+			iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 21 -j ACCEPT
+			iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 30000:30032 -j ACCEPT
+			iptables-save > /etc/iptables.up.rules
+			echo -e "${Tip}请牢记 FTP 用户 coder 的密码:${GreenFont} ${ftppasswd} ${FontEnd}"
+
 			dbdefpwd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
 			echo -e "${Tip}请设置 MySQL 数据库 Root 密码"
 			stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd
 			[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
 
-			# 生成安全数据
-			/home/www/lnmpsite down > /dev/null 2>&1
+			# 生成数据库安全数据
 			mysqldb=`cat /home/www/docker-compose.yml | grep lnmpsite-mysql | awk -F 'image:' '{print $2}'`
 			datamap='/home/www/mysql/data:/var/lib/mysql'
 			confmap='/home/www/mysql/my.cnf:/etc/my.cnf'
@@ -1124,15 +1159,18 @@ function do_lnmpsite()
 
 			# 生成无效密码信息
 			dbngpwd=`cat /dev/urandom | head -n 32 | md5sum | head -c 32`
-			config="MySQLpwd=${dbngpwd}"
+			config=" \
+FtpUser=coder \
+FtpUserPasswd=${dbngpwd} \
+MySQLpwd=${dbngpwd}"
 			templ=`cat /home/www/docker-compose.yml`
 			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/www/docker-compose.yml
 			touch /home/www/mysql/.passwd
 		fi
 
+		# 查看日志信息 docker logs mysql
 		cd /home/www
 		/home/www/lnmpsite up
-		#docker logs mysql
 		echo -e "${Info}LNMP 网站运行环境部署完成."
 	else
 		echo -e "${Info}LNMP 网站运行环境部署失败，请检查！."
