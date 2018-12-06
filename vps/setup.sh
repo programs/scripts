@@ -25,7 +25,7 @@ url_sbanch='https://raw.githubusercontent.com/oooldking/script/master/superbench
 url_ipaddr='https://www.bt.cn/Api/getIpAddress'
 url_nodequery='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
 url_v2ray='https://233blog.com/v2ray.sh'
-url_wordpress='https://wordpress.org/latest.tar.gz'
+url_wordpress='https://cn.wordpress.org/wordpress-'
 
 function checkRoot()
 {
@@ -1053,21 +1053,19 @@ function do_wordpress()
 
 	if [ -d /home/www/nginx/www ]; then
 
-		iptables -I INPUT -p tcp -m multiport --dport 20,21 -m state --state NEW -j ACCEPT
-		iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 21 -j ACCEPT
-		iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 30000:30032 -j ACCEPT
-		iptables-save > /etc/iptables.up.rules
-
 		#https://cn.wordpress.org/wordpress-4.9.4-zh_CN.tar.gz
 
-		[[ -f /tmp/latest.tar.gz ]] && rm -f /tmp/latest.tar.gz
-		wget -N --no-check-certificate -q -O /tmp/latest.tar.gz ${url_wordpress}
+		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.4):" wpversion
+		[[ -z "${wpversion}" ]] && wpversion='4.9.4'
+
+		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
+		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
 		cd /tmp/
-		tar -C /home/www/nginx -xzvf latest.tar.gz > /dev/null 2>&1
+		tar -C /home/www/nginx -xzvf wpstable.tar.gz > /dev/null 2>&1
 		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
 		mv /home/www/nginx/wordpress /home/www/nginx/www
-		chmod -R 755 /home/www/nginx/www && chown -R www /home/www/nginx/www
-		rm -rf /tmp/latest.tar.gz
+		chmod -R 755 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
+		rm -rf /tmp/wpstable.tar.gz
 
 		echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
 	fi
