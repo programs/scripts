@@ -25,6 +25,7 @@ url_sbanch='https://raw.githubusercontent.com/oooldking/script/master/superbench
 url_ipaddr='https://www.bt.cn/Api/getIpAddress'
 url_nodequery='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
 url_v2ray='https://233blog.com/v2ray.sh'
+url_wordpress='https://wordpress.org/latest.tar.gz'
 
 function checkRoot()
 {
@@ -478,6 +479,11 @@ function do_install()
 
 function do_speedtest()
 {
+	apt-get update > /dev/null 2>&1
+	apt-get install -y --no-install-recommends tcptraceroute bc
+	wget -N --no-check-certificate -q -O /usr/bin/tcpping http://www.vdberg.org/~richard/tcpping
+	chmod +x /usr/bin/tcpping
+
 	[[ -f /home/bin/zbanch.sh ]] && rm -f /home/bin/zbanch.sh
 	wget -N --no-check-certificate -q -O /home/bin/zbanch.sh ${url_zbanch}
 	chmod +x /home/bin/zbanch.sh
@@ -1029,14 +1035,47 @@ FRP_DASHBOARD_PASSWD_p=${dashboardpwd} "
 	cd ${currpath}
 }
 
+function do_wordpress()
+{
+	checkdocker
+	echo -e "${Info}正在部署基于DOCKER的 BLOG 站点 ..."
+
+	currpath=`pwd`
+	if [ ! -d /home/www/nginx/www ]; then
+		stty erase '^H' && read -p "发现本地未安装 LNMP 网站运行环境，是否进行安装? [Y/n]:" yn
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			do_lnmpsite
+		else
+			echo -e "${Tip}BLOG 站点部署被中止!" && exit 1
+		fi
+	fi
+
+	if [ ! -d /home/www/nginx/www ]; then
+
+		[[ -f /tmp/latest.tar.gz ]] && rm -f /tmp/latest.tar.gz
+		wget -N --no-check-certificate -q -O /tmp/latest.tar.gz ${url_wordpress}
+		cd /tmp/
+		tar -C /home/www/nginx -xzvf latest.tar.gz
+		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
+		mv /home/www/nginx/wordpress /home/www/nginx/www
+		chmod -R 755 /home/www/nginx/www && chown -R www /home/www/nginx/www
+		rm -rf /tmp/latest.tar.gz
+
+		echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
+	fi
+
+	cd ${currpath}
+}
+
 function do_lnmpsite()
 {
 	checkdocker
-	echo -e "${Info}正在部署基于DOCKER的 LNMP 网站 ..."
+	echo -e "${Info}正在部署基于DOCKER的 LNMP 网站运行环境 ..."
 
 	currpath=`pwd`
 	if [ -d /home/www ]; then
-		stty erase '^H' && read -p "发现本地已存在 LNMP 站点，是否进行备份? [Y/n]:" yn
+		stty erase '^H' && read -p "发现本地已存在 LNMP 网站运行环境，是否进行备份? [Y/n]:" yn
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			${fsudo} mkdir -p /home/backsite
@@ -1046,7 +1085,7 @@ function do_lnmpsite()
 	fi
 
 	if [ -d /home/www ]; then
-		stty erase '^H' && read -p "在不备份的情况下是否删除原有 LNMP 站点并重新部署? [y/N]:" ynt
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 LNMP 网站运行环境并重新部署? [y/N]:" ynt
 		[[ -z "${ynt}" ]] && ynt="n"
 		if [[ $ynt == [Yy] ]]; then
 			${fsudo} rm -rf /home/www
@@ -1094,9 +1133,9 @@ function do_lnmpsite()
 		cd /home/www
 		/home/www/lnmpsite up
 		#docker logs mysql
-		echo -e "${Info}LNMP 网站部署完成."
+		echo -e "${Info}LNMP 网站运行环境部署完成."
 	else
-		echo -e "${Info}LNMP 网站部署失败，请检查！."
+		echo -e "${Info}LNMP 网站运行环境部署失败，请检查！."
 	fi
 	cd ${currpath}
 }
@@ -1146,7 +1185,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | wordpress | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1184,9 +1223,11 @@ case "$action" in
 	echo -e " -- ${GreenFont}虚拟化${FontEnd} --"
 	echo "    makedocker -- 生成 DOCKER 运行环境"
 	echo "    uninsdocker-- 移除 DOCKER 运行环境"
-	echo "    lnmpsite   -- 部署 LNMP 网站 (DOCKER环境)"
+	echo "    lnmpsite   -- 部署 LNMP 环境 (DOCKER环境)"
 	echo "    ssrworld   -- 部署 SSR  环境 (DOCKER环境)"
 	echo "    vrayworld  -- 部署 V2Ray环境 (DOCKER环境)"
+	echo ""
+	echo "    wordpress  -- 部署 BLOG 站点"
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
