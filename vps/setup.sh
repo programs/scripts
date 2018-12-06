@@ -1100,17 +1100,13 @@ function do_wpupdate()
 		fi
 	else
 		currpath=`pwd`
-		stty erase '^H' && read -p "请输入将要升级的 Wordpress 中文稳定版本? (格式为x.x.x):" wpversion
-		[[ -z "${wpversion}" ]] && echo -e "${Tip}升级被中止！" && exit 1 
-
 		echo -e "${Info}正在处理，请稍等..."
 		cd /home/www
 		/home/www/lnmpsite stop > /dev/null 2>&1
 
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
-		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
 		if [ ! -f /tmp/wpstable.tar.gz ]; then
-			echo -e "${Tip}并不存在此版本，通常情况下，中文版本会落后英文版本！"
+		
 			stty erase '^H' && read -p "是否升级到最新的英文版本? [y/N]:" yrn
 			[[ -z "${yrn}" ]] && yrn='n'
 			if [[ $yn == [Nn] ]]; then
