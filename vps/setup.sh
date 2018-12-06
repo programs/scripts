@@ -1055,11 +1055,12 @@ function do_wordpress()
 
 		#https://cn.wordpress.org/wordpress-4.9.4-zh_CN.tar.gz
 
-		cd /home/www
-		/home/www/lnmpsite stop > /dev/null 2>&1
-
 		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.4):" wpversion
 		[[ -z "${wpversion}" ]] && wpversion='4.9.4'
+
+		echo -e "${Info}正在处理，请稍等..."
+		cd /home/www
+		/home/www/lnmpsite stop > /dev/null 2>&1
 
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
