@@ -1068,7 +1068,8 @@ function do_wordpress()
 		tar -C /home/www/nginx -xzvf wpstable.tar.gz > /dev/null 2>&1
 		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
 		mv /home/www/nginx/wordpress /home/www/nginx/www
-		chmod -R 755 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
+		#chmod -R 755 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
+		chmod -R 666 /home/www/nginx/www && chown -R 99:99 /home/www/nginx/www
 		rm -rf /tmp/wpstable.tar.gz
 
 		/home/www/lnmpsite start > /dev/null 2>&1
