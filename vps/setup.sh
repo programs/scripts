@@ -1075,7 +1075,6 @@ function do_wordpress()
 		chmod 755 /home/www/nginx/www
 		find /home/www/nginx/www -type d -exec chmod 755 {} \;
 		find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
-		#chown -R nginx:nginx /home/www/nginx/www
 		#chown -R 1000:1000 /home/www/nginx/www
 
 		rm -rf /tmp/wpstable.tar.gz
@@ -1133,7 +1132,6 @@ function do_wpupdate()
 			chmod 755 /home/www/nginx/www
 			find /home/www/nginx/www -type d -exec chmod 755 {} \;
 			find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
-			#chown -R nginx:nginx /home/www/nginx/www
 			#chown -R 1000:1000 /home/www/nginx/www
 
 			rm -rf /tmp/wpstable.tar.gz /tmp/wp-config.php
