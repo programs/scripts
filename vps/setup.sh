@@ -26,6 +26,7 @@ url_ipaddr='https://www.bt.cn/Api/getIpAddress'
 url_nodequery='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
 url_v2ray='https://233blog.com/v2ray.sh'
 url_wordpress='https://cn.wordpress.org/wordpress-'
+url_wplasten='https://wordpress.org/latest.tar.gz'
 
 function checkRoot()
 {
@@ -1065,10 +1066,16 @@ function do_wordpress()
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
 		cd /tmp/
-		tar -C /home/www/nginx -xzvf wpstable.tar.gz > /dev/null 2>&1
+		tar -C /home/www/nginx -xzvf /tmp/wpstable.tar.gz > /dev/null 2>&1
 		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
 		mv /home/www/nginx/wordpress /home/www/nginx/www
-		chmod -R 777 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
+
+		chmod -R 755 /home/www/nginx/www/wp-content/plugins/
+		chmod -R 755 /home/www/nginx/www/wp-content/themes/
+		chmod -R 755 /home/www/nginx/www/wp-content/uploads/
+		chmod -R 755 /home/www/nginx/www/wp-content/upgrade/
+		chown -R 1000:1000 /home/www/nginx/www
+
 		rm -rf /tmp/wpstable.tar.gz
 
 		#du -h --max-depth=0 ./www
@@ -1098,18 +1105,37 @@ function do_wpupdate()
 
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
-		cd /tmp/
-		cp /home/www/nginx/www/wp-config.php /tmp/wp-config.php
-		tar -C /tmp -xzvf wpstable.tar.gz > /dev/null 2>&1
-		[[ -d /tmp/wordpress/wp-content ]] && rm -rf /tmp/wordpress/wp-content
-		cp -R /tmp/wordpress /home/www/nginx/www
-		cp /tmp/wp-config.php /home/www/nginx/www/wp-config.php
-		chmod -R 777 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
-		rm -rf /tmp/wpstable.tar.gz
-		rm -rf /tmp/wordpress
+		if [ ! -f /tmp/wpstable.tar.gz ]; then
+			echo -e "${Tip}并不存在此版本，通常情况下，中文版本会落后英文版本！"
+			stty erase '^H' && read -p "是否升级到最新的英文版本? [y/N]:" yrn
+			[[ -z "${yrn}" ]] && yrn='n'
+			if [[ $yn == [Nn] ]]; then
+				echo -e "${Tip}升级被中止！" && exit 1 
+			fi
+			wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wplasten}
+		fi
 
-		/home/www/lnmpsite start > /dev/null 2>&1
-		echo -e "${Info}BLOG 网站升级完成，请访问域名${GreenFont} https://域名/wp-admin/upgrade.php ${FontEnd}进行相关设置."
+		if [ -f /tmp/wpstable.tar.gz ]; then
+			cd /tmp/
+			cp /home/www/nginx/www/wp-config.php /tmp/wp-config.php
+			tar -C /tmp -xzvf /tmp/wpstable.tar.gz > /dev/null 2>&1
+			[[ -d /tmp/wordpress/wp-content ]] && rm -rf /tmp/wordpress/wp-content
+			cp -R /tmp/wordpress/* /home/www/nginx/www
+			cp /tmp/wp-config.php /home/www/nginx/www/wp-config.php
+			
+			chmod -R 755 /home/www/nginx/www/wp-content/plugins/
+			chmod -R 755 /home/www/nginx/www/wp-content/themes/
+			chmod -R 755 /home/www/nginx/www/wp-content/uploads/
+			chmod -R 755 /home/www/nginx/www/wp-content/upgrade/
+			chown -R 1000:1000 /home/www/nginx/www
+
+			rm -rf /tmp/wpstable.tar.gz /tmp/wp-config.php
+			rm -rf /tmp/wordpress
+
+			/home/www/lnmpsite start > /dev/null 2>&1
+			echo -e "${Info}BLOG 网站升级完成，请访问域名${GreenFont} https://域名/wp-admin/upgrade.php ${FontEnd}进行相关设置."
+		fi
+
 		cd ${currpath}
 	fi
 }
