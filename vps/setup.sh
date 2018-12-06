@@ -1070,16 +1070,21 @@ function do_wordpress()
 		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
 		mv /home/www/nginx/wordpress /home/www/nginx/www
 
-		chmod -R 755 /home/www/nginx/www/wp-content/plugins/
-		chmod -R 755 /home/www/nginx/www/wp-content/themes/
-		chmod -R 755 /home/www/nginx/www/wp-content/uploads/
-		chmod -R 755 /home/www/nginx/www/wp-content/upgrade/
-		chown -R 1000:1000 /home/www/nginx/www
+		mkdir -p /home/www/nginx/www/wp-content/uploads
+		mkdir -p /home/www/nginx/www/wp-content/upgrade
+		chmod 755 /home/www/nginx/www
+		find /home/www/nginx/www -type d -exec chmod 755 {} \;
+		find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
+		#chown -R nginx:nginx /home/www/nginx/www
+		#chown -R 1000:1000 /home/www/nginx/www
 
 		rm -rf /tmp/wpstable.tar.gz
 
 		#du -h --max-depth=0 ./www
 		/home/www/lnmpsite start > /dev/null 2>&1
+		sleep 2s
+		docker exec nginx bash -c "chown -R nginx:nginx /usr/share/nginx/html"
+
 		echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
 	fi
 
@@ -1123,16 +1128,21 @@ function do_wpupdate()
 			cp -R /tmp/wordpress/* /home/www/nginx/www
 			cp /tmp/wp-config.php /home/www/nginx/www/wp-config.php
 			
-			chmod -R 755 /home/www/nginx/www/wp-content/plugins/
-			chmod -R 755 /home/www/nginx/www/wp-content/themes/
-			chmod -R 755 /home/www/nginx/www/wp-content/uploads/
-			chmod -R 755 /home/www/nginx/www/wp-content/upgrade/
-			chown -R 1000:1000 /home/www/nginx/www
+			mkdir -p /home/www/nginx/www/wp-content/uploads
+			mkdir -p /home/www/nginx/www/wp-content/upgrade
+			chmod 755 /home/www/nginx/www
+			find /home/www/nginx/www -type d -exec chmod 755 {} \;
+			find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
+			#chown -R nginx:nginx /home/www/nginx/www
+			#chown -R 1000:1000 /home/www/nginx/www
 
 			rm -rf /tmp/wpstable.tar.gz /tmp/wp-config.php
 			rm -rf /tmp/wordpress
 
 			/home/www/lnmpsite start > /dev/null 2>&1
+			sleep 2s
+			docker exec nginx bash -c "chown -R nginx:nginx /usr/share/nginx/html"
+
 			echo -e "${Info}BLOG 网站升级完成，请访问域名${GreenFont} https://域名/wp-admin/upgrade.php ${FontEnd}进行相关设置."
 		fi
 
