@@ -1053,10 +1053,10 @@ function do_wordpress()
 
 	if [ -d /home/www/nginx/www ]; then
 
-		#https://cn.wordpress.org/wordpress-4.9.4-zh_CN.tar.gz
+		#https://cn.wordpress.org/wordpress-4.9.8-zh_CN.tar.gz
 
-		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.4):" wpversion
-		[[ -z "${wpversion}" ]] && wpversion='4.9.4'
+		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.8):" wpversion
+		[[ -z "${wpversion}" ]] && wpversion='4.9.8'
 
 		echo -e "${Info}正在处理，请稍等..."
 		cd /home/www
@@ -1068,14 +1068,49 @@ function do_wordpress()
 		tar -C /home/www/nginx -xzvf wpstable.tar.gz > /dev/null 2>&1
 		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
 		mv /home/www/nginx/wordpress /home/www/nginx/www
-		chmod -R 766 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
+		chmod -R 777 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
 		rm -rf /tmp/wpstable.tar.gz
 
+		#du -h --max-depth=0 ./www
 		/home/www/lnmpsite start > /dev/null 2>&1
 		echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
 	fi
 
 	cd ${currpath}
+}
+
+function do_wpupdate()
+{
+	if [ ! -f /home/www/nginx/www/wp-config.php ]; then
+		stty erase '^H' && read -p "发现本地未部署 BLOG 站点，是否进行安装? [Y/n]:" yn
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			do_wordpress
+		fi
+	else
+		currpath=`pwd`
+		stty erase '^H' && read -p "请输入将要升级的 Wordpress 中文稳定版本? (格式为x.x.x):" wpversion
+		[[ -z "${wpversion}" ]] && echo -e "${Tip}升级被中止！" && exit 1 
+
+		echo -e "${Info}正在处理，请稍等..."
+		cd /home/www
+		/home/www/lnmpsite stop > /dev/null 2>&1
+
+		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
+		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
+		cd /tmp/
+		tar -C /tmp -xzvf wpstable.tar.gz > /dev/null 2>&1
+		[[ -d /tmp/wordpress/wp-content ]] && rm -rf /tmp/wordpress/wp-content
+		rm -rf /home/www/nginx/www/wp-includes /home/www/nginx/www/wp-admin
+		cp -R /tmp/wordpress /home/www/nginx/www
+		chmod -R 777 /home/www/nginx/www && chown -R 1000:1000 /home/www/nginx/www
+		rm -rf /tmp/wpstable.tar.gz
+		rm -rf /tmp/wordpress
+
+		/home/www/lnmpsite start > /dev/null 2>&1
+		echo -e "${Info}BLOG 网站升级完成，请访问域名${GreenFont} https://域名/wp-admin/upgrade.php ${FontEnd}进行相关设置."
+		cd ${currpath}
+	fi
 }
 
 function do_lnmpsite()
@@ -1227,7 +1262,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | wordpress | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | wordpress | wpupdate | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1270,6 +1305,7 @@ case "$action" in
 	echo "    vrayworld  -- 部署 V2Ray环境 (DOCKER环境)"
 	echo ""
 	echo "    wordpress  -- 部署 BLOG 站点"
+	echo "    wpupdate   -- 升级 BLOG 站点"
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
