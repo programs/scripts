@@ -1104,6 +1104,7 @@ function do_lnmpsite()
 		${fsudo} git clone https://github.com/gorouter/lnmpsite.git
 		${fsudo} mv /home/lnmpsite  /home/www
 		${fsudo} chmod +x /home/www/lnmpsite
+		[[ -f /usr/bin/lnmpsite ]] && ${fsudo} rm -f /usr/bin/lnmpsite
 		${fsudo} ln -s /home/www/lnmpsite /usr/bin/lnmpsite
 	fi
 
