@@ -912,8 +912,8 @@ function do_vrayworld()
 		cd /home
 		${fsudo} git clone https://github.com/gorouter/zraypro.git
 		${fsudo} mv /home/zraypro  /home/vraworld
-		${fsudo} chmod +x /home/home/zraypro
-		${fsudo} ln -s /home/home/zraypro /usr/bin/zraypro
+		${fsudo} chmod +x /home/vraworld/zraypro
+		${fsudo} ln -s /home/vraworld/zraypro /usr/bin/zraypro
 	fi
 
 	if [ -f /home/vraworld/docker-compose.yml ]; then
