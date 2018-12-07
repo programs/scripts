@@ -1024,7 +1024,7 @@ FRP_DASHBOARD_PASSWD_p=${dashboardpwd} "
 			templ=`cat /home/ssrworld//docker-compose-template.yml`
 			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/ssrworld/docker-compose.yml
 
-			touch /home/www/mysql/.passwd
+			touch /home/lnmpsite/mysql/.passwd
 		fi
 
 		cd /home/ssrworld
@@ -1042,7 +1042,7 @@ function do_wordpress()
 	echo -e "${Info}正在部署基于DOCKER的 BLOG 站点 ..."
 
 	currpath=`pwd`
-	if [ ! -d /home/www/nginx/www ]; then
+	if [ ! -d /home/lnmpsite/nginx/www ]; then
 		stty erase '^H' && read -p "发现本地未安装 LNMP 网站运行环境，是否进行安装? [Y/n]:" yn
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
@@ -1052,39 +1052,42 @@ function do_wordpress()
 		fi
 	fi
 
-	if [ -d /home/www/nginx/www ]; then
+	if [ -d /home/lnmpsite/nginx/www ]; then
 
-		#https://cn.wordpress.org/wordpress-4.9.8-zh_CN.tar.gz
+		#https://cn.wordpress.org/wordpress-4.9.4-zh_CN.tar.gz
 
-		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.8):" wpversion
-		[[ -z "${wpversion}" ]] && wpversion='4.9.8'
+		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.4):" wpversion
+		[[ -z "${wpversion}" ]] && wpversion='4.9.4'
 
-		echo -e "${Info}正在处理，请稍等..."
-		cd /home/www
-		/home/www/lnmpsite stop > /dev/null 2>&1
-
+		cd /home/lnmpsite
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		wget -N --no-check-certificate -q -O /tmp/wpstable.tar.gz ${url_wordpress}${wpversion}-zh_CN.tar.gz
-		cd /tmp/
-		tar -C /home/www/nginx -xzvf /tmp/wpstable.tar.gz > /dev/null 2>&1
-		[[ -d /home/www/nginx/www ]] && rm -rf /home/www/nginx/www
-		mv /home/www/nginx/wordpress /home/www/nginx/www
 
-		mkdir -p /home/www/nginx/www/wp-content/uploads
-		mkdir -p /home/www/nginx/www/wp-content/upgrade
-		chmod 755 /home/www/nginx/www
-		find /home/www/nginx/www -type d -exec chmod 755 {} \;
-		find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
-		#chmod 777 -R /home/www/nginx/www/wp-content
+		if [ -f /tmp/wpstable.tar.gz ]; then
 
-		rm -rf /tmp/wpstable.tar.gz
+			echo -e "${Info}正在处理，请稍等..."
+			/home/lnmpsite/lnmpsite stop > /dev/null 2>&1
 
-		#du -h --max-depth=0 ./www
-		/home/www/lnmpsite start > /dev/null 2>&1
-		sleep 2s
-		docker exec nginx bash -c "chown -R nginx:nginx /usr/share/nginx/html"
+			cd /tmp/
+			tar -C /home/lnmpsite/nginx -xzvf /tmp/wpstable.tar.gz > /dev/null 2>&1
+			[[ -d /home/lnmpsite/nginx/www ]] && rm -rf /home/lnmpsite/nginx/www
+			mv /home/lnmpsite/nginx/wordpress /home/lnmpsite/nginx/www
 
-		echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
+			mkdir -p /home/lnmpsite/nginx/www/wp-content/uploads
+			mkdir -p /home/lnmpsite/nginx/www/wp-content/upgrade
+			chmod 755 /home/lnmpsite/nginx/www
+			find /home/lnmpsite/nginx/www -type d -exec chmod 755 {} \;
+			find /home/lnmpsite/nginx/www -iname "*.php"  -exec chmod 644 {} \;
+			#chmod 777 -R /home/lnmpsite/nginx/www/wp-content
+
+			rm -rf /tmp/wpstable.tar.gz
+
+			#du -h --max-depth=0 ./www
+			/home/lnmpsite/lnmpsite start > /dev/null 2>&1
+			sleep 2s
+			docker exec nginx bash -c "chown -R nginx:nginx /usr/share/nginx/html"
+
+			echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
 	fi
 
 	cd ${currpath}
@@ -1092,7 +1095,7 @@ function do_wordpress()
 
 function do_wpupdate()
 {
-	if [ ! -f /home/www/nginx/www/wp-config.php ]; then
+	if [ ! -f /home/lnmpsite/nginx/www/wp-config.php ]; then
 		stty erase '^H' && read -p "发现本地未部署 BLOG 站点，是否进行安装? [Y/n]:" yn
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
@@ -1100,7 +1103,7 @@ function do_wpupdate()
 		fi
 	else
 		currpath=`pwd`
-		cd /home/www
+		cd /home/lnmpsite
 
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		if [ ! -f /tmp/wpstable.tar.gz ]; then
@@ -1116,31 +1119,33 @@ function do_wpupdate()
 		if [ -f /tmp/wpstable.tar.gz ]; then
 
 			echo -e "${Info}正在处理，请稍等..."
-			/home/www/lnmpsite stop > /dev/null 2>&1
+			/home/lnmpsite/lnmpsite stop > /dev/null 2>&1
 
 			cd /tmp/
-			cp /home/www/nginx/www/wp-config.php /tmp/wp-config.php
+			cp /home/lnmpsite/nginx/www/wp-config.php /tmp/wp-config.php
 			tar -C /tmp -xzvf /tmp/wpstable.tar.gz > /dev/null 2>&1
 			[[ -d /tmp/wordpress/wp-content ]] && rm -rf /tmp/wordpress/wp-content
-			cp -R /tmp/wordpress/* /home/www/nginx/www
-			cp /tmp/wp-config.php /home/www/nginx/www/wp-config.php
+			cp -R /tmp/wordpress/* /home/lnmpsite/nginx/www
+			cp /tmp/wp-config.php /home/lnmpsite/nginx/www/wp-config.php
 			
-			mkdir -p /home/www/nginx/www/wp-content/uploads
-			mkdir -p /home/www/nginx/www/wp-content/upgrade
-			chmod 755 /home/www/nginx/www
-			find /home/www/nginx/www -type d -exec chmod 755 {} \;
-			find /home/www/nginx/www -iname "*.php"  -exec chmod 644 {} \;
-			#chmod 777 -R /home/www/nginx/www/wp-content
+			mkdir -p /home/lnmpsite/nginx/www/wp-content/uploads
+			mkdir -p /home/lnmpsite/nginx/www/wp-content/upgrade
+			chmod 755 /home/lnmpsite/nginx/www
+			find /home/lnmpsite/nginx/www -type d -exec chmod 755 {} \;
+			find /home/lnmpsite/nginx/www -iname "*.php"  -exec chmod 644 {} \;
+			#chmod 777 -R /home/lnmpsite/nginx/www/wp-content
 
 			rm -rf /tmp/wpstable.tar.gz /tmp/wp-config.php
 			rm -rf /tmp/wordpress
 
-			/home/www/lnmpsite start > /dev/null 2>&1
+			/home/lnmpsite/lnmpsite start > /dev/null 2>&1
 			sleep 2s
 			docker exec nginx bash -c "chown -R nginx:nginx /usr/share/nginx/html"
-			docker exec nginx bash -c "chown -R www:www /usr/share/nginx/html"
 
 			echo -e "${Info}BLOG 网站升级完成，请访问域名${GreenFont} https://域名/wp-admin/upgrade.php ${FontEnd}进行相关设置."
+
+		else
+			echo -e "${Tip}下载升级包失败！"
 		fi
 
 		cd ${currpath}
@@ -1153,38 +1158,38 @@ function do_lnmpsite()
 	echo -e "${Info}正在部署基于DOCKER的 LNMP 网站运行环境 ..."
 
 	currpath=`pwd`
-	if [ -d /home/www ]; then
+	if [ -d /home/lnmpsite ]; then
 		stty erase '^H' && read -p "发现本地已存在 LNMP 网站运行环境，是否进行备份? [Y/n]:" yn
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			${fsudo} mkdir -p /home/backsite
-			${fsudo} tar zcvf /home/backsite/www`date +%Y%m%d.%H%M%S`.tar.gz /home/www
-			${fsudo} rm -rf /home/www
+			${fsudo} tar zcvf /home/backsite/www`date +%Y%m%d.%H%M%S`.tar.gz /home/lnmpsite
+			${fsudo} rm -rf /home/lnmpsite
 		fi
 	fi
 
-	if [ -d /home/www ]; then
+	if [ -d /home/lnmpsite ]; then
 		stty erase '^H' && read -p "在不备份的情况下是否删除原有 LNMP 网站运行环境并重新部署? [y/N]:" ynt
 		[[ -z "${ynt}" ]] && ynt="n"
 		if [[ $ynt == [Yy] ]]; then
-			${fsudo} rm -rf /home/www
+			${fsudo} rm -rf /home/lnmpsite
 		fi
 	fi
 
-	if [ ! -d /home/www ]; then
+	if [ ! -d /home/lnmpsite ]; then
 		cd /home
 		${fsudo} git clone https://github.com/gorouter/lnmpsite.git
-		${fsudo} mv /home/lnmpsite  /home/www
-		${fsudo} chmod +x /home/www/lnmpsite
+		${fsudo} mv /home/lnmpsite  /home/lnmpsite
+		${fsudo} chmod +x /home/lnmpsite/lnmpsite
 		[[ -f /usr/bin/lnmpsite ]] && ${fsudo} rm -f /usr/bin/lnmpsite
-		${fsudo} ln -s /home/www/lnmpsite /usr/bin/lnmpsite
+		${fsudo} ln -s /home/lnmpsite/lnmpsite /usr/bin/lnmpsite
 	fi
 
-	if [ -f /home/www/docker-compose.yml ]; then
+	if [ -f /home/lnmpsite/docker-compose.yml ]; then
 
-		if [ ! -f /home/www/mysql/.passwd ]; then
+		if [ ! -f /home/lnmpsite/mysql/.passwd ]; then
 
-			/home/www/lnmpsite down > /dev/null 2>&1
+			/home/lnmpsite/lnmpsite down > /dev/null 2>&1
 
 			ftppwd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
 			echo -e "${Tip}请设置 FTP 用户(默认为 ${GreenFont}coder${FontEnd})密码"
@@ -1192,9 +1197,9 @@ function do_lnmpsite()
 			[[ -z "${ftppasswd}" ]] && ftppasswd=${ftppwd}
 
 			# 生成FTP安全数据
-			ftpdsrv=`cat /home/www/docker-compose.yml | grep lnmpsite-ftpd | awk -F 'image:' '{print $2}'`
-			htmlmap='/home/www/nginx/www:/home/ftpusers/coder'
-			pureftp='/home/www/ftpd/pure-ftpd:/etc/pure-ftpd'
+			ftpdsrv=`cat /home/lnmpsite/docker-compose.yml | grep lnmpsite-ftpd | awk -F 'image:' '{print $2}'`
+			htmlmap='/home/lnmpsite/nginx/www:/home/ftpusers/coder'
+			pureftp='/home/lnmpsite/ftpd/pure-ftpd:/etc/pure-ftpd'
 			docker run -d --name seftpd -v ${htmlmap} -v ${pureftp} -e PUBLICHOST=localhost -e FTP_USER=coder -e FTP_PASSWORD=${ftppasswd} ${ftpdsrv}
 			echo -e "${Tip}正在初始化FTP服务，请稍等 ... "
 			sleep 5s
@@ -1219,9 +1224,9 @@ function do_lnmpsite()
 			[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
 
 			# 生成数据库安全数据
-			mysqldb=`cat /home/www/docker-compose.yml | grep lnmpsite-mysql | awk -F 'image:' '{print $2}'`
-			datamap='/home/www/mysql/data:/var/lib/mysql'
-			confmap='/home/www/mysql/my.cnf:/etc/my.cnf'
+			mysqldb=`cat /home/lnmpsite/docker-compose.yml | grep lnmpsite-mysql | awk -F 'image:' '{print $2}'`
+			datamap='/home/lnmpsite/mysql/data:/var/lib/mysql'
+			confmap='/home/lnmpsite/mysql/my.cnf:/etc/my.cnf'
 			docker run -d --name semysql -p 3306:3306 -v ${datamap} -v ${confmap} -e MYSQL_ROOT_PASSWORD=${dbpasswd} ${mysqldb}
 			echo -e "${Tip}正在初始化数据库，请稍等 ... "
 			sleep 10s
@@ -1236,14 +1241,14 @@ function do_lnmpsite()
 FtpUser=coder \
 FtpUserPasswd=${dbngpwd} \
 MySQLpwd=${dbngpwd}"
-			templ=`cat /home/www/docker-compose.yml`
-			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/www/docker-compose.yml
-			touch /home/www/mysql/.passwd
+			templ=`cat /home/lnmpsite/docker-compose.yml`
+			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/lnmpsite/docker-compose.yml
+			touch /home/lnmpsite/mysql/.passwd
 		fi
 
 		# 查看日志信息 docker logs mysql
-		cd /home/www
-		/home/www/lnmpsite up
+		cd /home/lnmpsite
+		/home/lnmpsite/lnmpsite up
 		echo -e "${Info}LNMP 网站运行环境部署完成."
 	else
 		echo -e "${Info}LNMP 网站运行环境部署失败，请检查！."
