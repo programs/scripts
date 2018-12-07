@@ -75,7 +75,7 @@ function configRoot()
 
 		defaultpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 16`
 		echo -e "${Info}请修改ROOT密码"
-		stty erase '^H' && read -p "(回车，默认密码为 ${defaultpwd}):" rootpasswd
+		stty erase '^H' && read -p "(回车，默认密码为 ${defaultpwd}):" rootpasswd && stty erase '^?' 
 		[[ -z "${rootpasswd}" ]] && rootpasswd=${defaultpwd}
 
 		#echo "${rootpasswd}" | passwd root --stdin > /dev/null 2>&1
@@ -97,7 +97,7 @@ function configRoot()
 function createUser()
 {
 	echo -e "${Info}请输入 将要创建的用户名"
-	stty erase '^H' && read -p "(回车，默认用户名为 ${defaultuser}):" username
+	stty erase '^H' && read -p "(回车，默认用户名为 ${defaultuser}):" username && stty erase '^?' 
 	[[ -z "${username}" ]] && username=${defaultuser}
 
 	exist_user=`cat /etc/passwd | grep ${username} | awk -F ':' '{print $1}'`
@@ -107,7 +107,7 @@ function createUser()
 
 		userdefpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 16`
 		echo -e "${Info}请输入 用户对应的密码"
-		stty erase '^H' && read -p "(回车，默认密码为 ${userdefpwd}):" userpasswd
+		stty erase '^H' && read -p "(回车，默认密码为 ${userdefpwd}):" userpasswd && stty erase '^?' 
 		[[ -z "${userpasswd}" ]] && userpasswd=${userdefpwd}
 		#echo "${userpasswd}" | passwd ${username} --stdin > /dev/null 2>&1
 		echo ${username}:${userpasswd} | chpasswd
@@ -148,7 +148,7 @@ function createSwap()
 
 		swap_file=`swapon -s | grep -v 'Filename' | grep -v 'dev' | awk '{print $1}'`
 		if [ ! -z "${swap_file}" && -f ${swap_file} ]; then
-			stty erase '^H' && read -p "是否重新创建交换分区? [Y/n] :" ynt
+			stty erase '^H' && read -p "是否重新创建交换分区? [Y/n] :" ynt && stty erase '^?' 
 			[[ -z "${ynt}" ]] && ynt="y"
 			if [[ $ynt == [Yy] ]]; then
 				swapfile=${swap_file}
@@ -168,7 +168,7 @@ function createSwap()
 	if [ "x${need_swap}" == "xdo" ]; then
 		
 		echo -e "${Info}当前物理内存为${GreenBack} ${tram_size}M ${FontEnd}"
-		stty erase '^H' && read -p "请输入将要创建交换分区大小 (默认等于物理内存-100M) :" inputsize
+		stty erase '^H' && read -p "请输入将要创建交换分区大小 (默认等于物理内存-100M) :" inputsize && stty erase '^?' 
 		[[ -z "${inputsize}" ]] && inputsize=`expr ${tram_size} - 100`
 		dd if=/dev/zero of=${swapfile} bs=${inputsize}M count=1
 
@@ -188,7 +188,7 @@ function createSwap()
 			echo -e "${Error}创建交换分区失败!"
 
 			if [ "${doinstall}" == "true" ]; then 
-				stty erase '^H' && read -p "是否继续? [y/N]:" yn
+				stty erase '^H' && read -p "是否继续? [y/N]:" yn && stty erase '^?' 
 				[[ -z "${yn}" ]] && yn="n"
 				if [[ $yn == [Yy] ]]; then
 					echo -e "${Info}本程序被中止!"
@@ -203,7 +203,7 @@ function updateSystem()
 {
 	apt-get update > /dev/null 2>&1
 	
-	stty erase '^H' && read -p "是否需要更新系统 ? [y/N] :" yn
+	stty erase '^H' && read -p "是否需要更新系统 ? [y/N] :" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="n"
 	if [[ $yn == [Yy] ]]; then
 		echo -e "${Info}正在更新系统..."
@@ -243,7 +243,7 @@ function do_ssripv6()
 	fi
 
 	apt-get install -y --no-install-recommends jq
-	stty erase '^H' && read -p "SSR 是否使用 IPv6 配置? [Y/n] :" yn
+	stty erase '^H' && read -p "SSR 是否使用 IPv6 配置? [Y/n] :" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		ipv6flag='true'
@@ -281,7 +281,7 @@ function do_ssrmdport()
 	userconfig='/usr/local/shadowsocksr/user-config.json'
 
 	ssrmdport='do'
-	stty erase '^H' && read -p "请输入 SSR 的端口号? (回车，单用户情况可自动获取):" ssr_port
+	stty erase '^H' && read -p "请输入 SSR 的端口号? (回车，单用户情况可自动获取):" ssr_port && stty erase '^?' 
 	if [ -z "${ssr_port}" ]; then
 		count=`python /usr/local/shadowsocksr/mujson_mgr.py -l | wc -l`
 		if [ ${count} -eq 1 ]; then
@@ -384,7 +384,7 @@ function installFrp()
 function do_setupssr()
 {
 	# SSR && FRP
-	stty erase '^H' && read -p "是否需要安装SSR 以及使用 FRP 于80端口隐藏? [Y/n]:" yn
+	stty erase '^H' && read -p "是否需要安装SSR 以及使用 FRP 于80端口隐藏? [Y/n]:" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		setupSsrmu
@@ -494,7 +494,7 @@ function do_speedtest()
 	wget -N --no-check-certificate -q -O /home/bin/superbench.sh ${url_sbanch}
 	chmod +x /home/bin/superbench.sh
 
-	stty erase '^H' && read -p "是否需要进一步进行网络测试? [Y/n]:" yn
+	stty erase '^H' && read -p "是否需要进一步进行网络测试? [Y/n]:" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		mtr -rw www.baidu.com
@@ -555,14 +555,14 @@ function do_adduser() {
 function do_deluser()
 {
 	echo -e "${Info}请输入 将要删除的用户名"
-	stty erase '^H' && read -p "(回车，默认用户名为 ${defaultuser}):" username
+	stty erase '^H' && read -p "(回车，默认用户名为 ${defaultuser}):" username && stty erase '^?' 
 	[[ -z "${username}" ]] && username=${defaultuser}
 
 	exist_user=`cat /etc/passwd | grep ${username} | awk -F ':' '{print $1}'`
 	if [ ! -z "${exist_user}" ]; then
 
 		echo -e "${RedFont}${Tip}删除用户 ${username} 将不可恢复!${FontEnd}"
-		stty erase '^H' && read -p "请确认? [y/N]:" yn
+		stty erase '^H' && read -p "请确认? [y/N]:" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="n"
 		if [[ $yn == [Yy] ]]; then
 			userdel ${username}
@@ -577,7 +577,7 @@ function do_deluser()
 function do_iptable()
 {
 	vim /etc/iptables.up.rules
-	stty erase '^H' && read -p "是否使防火墙立即生效 ? [Y/n] :" yn
+	stty erase '^H' && read -p "是否使防火墙立即生效 ? [Y/n] :" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		iptables-restore < /etc/iptables.up.rules
@@ -593,7 +593,7 @@ function do_iptable()
 function do_editfrp()
 {
 	vim /home/frp/frps.ini
-	stty erase '^H' && read -p "是否使FRP立即生效 ? [Y/n] :" yn
+	stty erase '^H' && read -p "是否使FRP立即生效 ? [Y/n] :" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		systemctl restart supervisor
@@ -605,12 +605,12 @@ function do_configssh()
 	sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
 	echo -e "${Info}当前 SSH 端口号:${GreenFont} ${sshPort} ${FontEnd}"
 
-	stty erase '^H' && read -p "是否需要手动配置 SSH ? [Y/n] :" ynt
+	stty erase '^H' && read -p "是否需要手动配置 SSH ? [Y/n] :" ynt && stty erase '^?' 
 	[[ -z "${ynt}" ]] && ynt="y"
 	if [[ $ynt == [Yy] ]]; then
 
 		vim /etc/ssh/sshd_config
-		stty erase '^H' && read -p "是否使SSH立即生效 ? [Y/n] :" yn
+		stty erase '^H' && read -p "是否使SSH立即生效 ? [Y/n] :" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			service sshd restart
@@ -636,16 +636,16 @@ function do_qsecurity()
 
 function do_frpsecurity()
 {
-	stty erase '^H' && read -p "是否需要设置 FRP 面板密码及其访问命牌? [Y/n] :" yn
+	stty erase '^H' && read -p "是否需要设置 FRP 面板密码及其访问命牌? [Y/n] :" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 		
 		dashboardrand=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
-		stty erase '^H' && read -p "请输入 FRP 面板密码:" dashboardpwd
+		stty erase '^H' && read -p "请输入 FRP 面板密码:" dashboardpwd && stty erase '^?' 
 		[[ -z "${dashboardpwd}" ]] && dashboardpwd=${dashboardrand}
 
 		privilegetokenrand=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
-		stty erase '^H' && read -p "请输入 FRP 访问命牌:" privilegetoken
+		stty erase '^H' && read -p "请输入 FRP 访问命牌:" privilegetoken && stty erase '^?' 
 		[[ -z "${privilegetoken}" ]] && privilegetoken=${privilegetokenrand}
 		
 	else
@@ -667,7 +667,7 @@ function do_ensshkeys()
 		echo -e "${Tip}请在非ROOT用户环境下执行！" && exit 1
 	fi
 
-	stty erase '^H' && read -p "请输入 ${username} 的密码:" userpwd
+	stty erase '^H' && read -p "请输入 ${username} 的密码:" userpwd && stty erase '^?' 
 	if [ ! -z "${userpwd}" ]; then
 		echo ${userpwd} | sudo -S apt-get update
 
@@ -707,7 +707,7 @@ function do_bansshkey()
 		echo -e "${Tip}请在非ROOT用户环境下执行！" && exit 1
 	fi
 
-	stty erase '^H' && read -p "请输入 ${username} 的密码:" userpwd
+	stty erase '^H' && read -p "请输入 ${username} 的密码:" userpwd && stty erase '^?' 
 	if [ ! -z "${userpwd}" ]; then
 		echo ${userpwd} | sudo -S apt-get update
 
@@ -722,7 +722,7 @@ function do_bansshkey()
 
 function do_enableipv6()
 {
-	stty erase '^H' && read -p "是否禁用 IPv6 ? [y/N] :" yn
+	stty erase '^H' && read -p "是否禁用 IPv6 ? [y/N] :" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="n"
 	if [[ $yn == [Yy] ]]; then
 
@@ -741,7 +741,7 @@ net.ipv6.conf.lo.disable_ipv6 = 1" | tee /etc/sysctl.d/99-ubuntu-ipv6.conf
 
 function do_nodequery()
 {
-	stty erase '^H' && read -p "请输入 NodeQuery 分配的令牌密码:" nodetoken
+	stty erase '^H' && read -p "请输入 NodeQuery 分配的令牌密码:" nodetoken && stty erase '^?' 
 	if [ ! -z "${nodetoken}" ]; then
 
 		nq_file='/home/bin/nq-install.sh'
@@ -757,7 +757,7 @@ function do_nodequery()
 
 function do_removenq()
 {
-	stty erase '^H' && read -p "是否确定移除 NodeQuery? [Y/n] :" yn
+	stty erase '^H' && read -p "是否确定移除 NodeQuery? [Y/n] :" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 
@@ -772,13 +772,13 @@ function do_uninsdocker()
 		echo -e "${Info}已移除 Docker!" && exit 1
 	fi
 
-	stty erase '^H' && read -p "正在移除之前已安装的 Docker 版本，请确定? [Y/n]:" yn
+	stty erase '^H' && read -p "正在移除之前已安装的 Docker 版本，请确定? [Y/n]:" yn && stty erase '^?' 
 	[[ -z "${yn}" ]] && yn="y"
 	if [[ $yn == [Yy] ]]; then
 
 		${fsudo} systemctl stop docker
 		${fsudo} systemctl disable docker
-		stty erase '^H' && read -p "是否保留原有的 Docker 镜像或容器? [Y/n]:" ynt
+		stty erase '^H' && read -p "是否保留原有的 Docker 镜像或容器? [Y/n]:" ynt && stty erase '^?' 
 		[[ -z "${ynt}" ]] && ynt="y"
 		if [[ $ynt == [Yy] ]]; then
 			${fsudo} sudo apt-get purge docker-ce
@@ -797,13 +797,13 @@ function do_makedocker()
 	fi
 
 	if [ -f /usr/bin/docker ]; then
-		stty erase '^H' && read -p "继续之前 将先移除之前可能已安装的 Docker 版本，请确定? [Y/n]:" yn
+		stty erase '^H' && read -p "继续之前 将先移除之前可能已安装的 Docker 版本，请确定? [Y/n]:" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 
 			${fsudo} systemctl stop docker
 			${fsudo} systemctl disable docker
-			stty erase '^H' && read -p "是否保留原有的 Docker 镜像或容器? [Y/n]:" ynt
+			stty erase '^H' && read -p "是否保留原有的 Docker 镜像或容器? [Y/n]:" ynt && stty erase '^?' 
 			[[ -z "${ynt}" ]] && ynt="y"
 			if [[ $ynt == [Yy] ]]; then
 				${fsudo} sudo apt-get purge docker-ce
@@ -850,7 +850,7 @@ function do_makedocker()
 	${fsudo} curl -fsSL https://github.com/docker/compose/releases/download/1.23.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
 	${fsudo} chmod +x /usr/local/bin/docker-compose
 
-	stty erase '^H' && read -p "是否设置国内镜像加速? [y/N]:" ynn
+	stty erase '^H' && read -p "是否设置国内镜像加速? [y/N]:" ynn && stty erase '^?' 
 	[[ -z "${ynn}" ]] && ynn="n"
 	if [[ $ynn == [Yy] ]]; then
 		#设置镜像加速
@@ -891,7 +891,7 @@ function do_vrayworld()
 
 	currpath=`pwd`
 	if [ -d /home/vraworld ]; then
-		stty erase '^H' && read -p "发现本地已存在基于DOCKER的 V2Ray 环境，是否进行备份? [y/N]:" yn
+		stty erase '^H' && read -p "发现本地已存在基于DOCKER的 V2Ray 环境，是否进行备份? [y/N]:" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="n"
 		if [[ $yn == [Yy] ]]; then
 			${fsudo} mkdir -p /home/backworld
@@ -901,7 +901,7 @@ function do_vrayworld()
 	fi
 
 	if [ -d /home/vraworld ]; then
-		stty erase '^H' && read -p "在不备份的情况下是否删除原有 V2Ray 环境并重新部署? [Y/n]:" ynt
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 V2Ray 环境并重新部署? [Y/n]:" ynt && stty erase '^?' 
 		[[ -z "${ynt}" ]] && ynt="y"
 		if [[ $ynt == [Yy] ]]; then
 			${fsudo} rm -rf /home/vraworld
@@ -959,7 +959,7 @@ function do_ssrworld()
 	echo -e "${Info}正在部署基于DOCKER的 SSR 环境 ..."
 
 	echo -e "${Tip}在 DOCKER 环境下运行 SSR 暂时无法支持 IPv6！"
-	stty erase '^H' && read -p "是否继续部署? [Y/n]:" ynn
+	stty erase '^H' && read -p "是否继续部署? [Y/n]:" ynn && stty erase '^?' 
 	[[ -z "${ynn}" ]] && ynn="y"
 	if [[ $ynn == [Nn] ]]; then
 		echo -e "${Info}部署基于DOCKER的 SSR 环境 被中止！" && exit 1
@@ -967,7 +967,7 @@ function do_ssrworld()
 
 	currpath=`pwd`
 	if [ -d /home/ssrworld ]; then
-		stty erase '^H' && read -p "发现本地已存在基于DOCKER的 SSR 环境，是否进行备份? [y/N]:" yn
+		stty erase '^H' && read -p "发现本地已存在基于DOCKER的 SSR 环境，是否进行备份? [y/N]:" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="n"
 		if [[ $yn == [Yy] ]]; then
 			${fsudo} mkdir -p /home/backworld
@@ -977,7 +977,7 @@ function do_ssrworld()
 	fi
 
 	if [ -d /home/ssrworld ]; then
-		stty erase '^H' && read -p "在不备份的情况下是否删除原有 SSR 环境并重新部署? [Y/n]:" ynt
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 SSR 环境并重新部署? [Y/n]:" ynt && stty erase '^?' 
 		[[ -z "${ynt}" ]] && ynt="y"
 		if [[ $ynt == [Yy] ]]; then
 			${fsudo} rm -rf /home/ssrworld
@@ -1043,7 +1043,7 @@ function do_wordpress()
 
 	currpath=`pwd`
 	if [ ! -d /home/lnmpsite/nginx/www ]; then
-		stty erase '^H' && read -p "发现本地未安装 LNMP 网站运行环境，是否进行安装? [Y/n]:" yn
+		stty erase '^H' && read -p "发现本地未安装 LNMP 网站运行环境，是否进行安装? [Y/n]:" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			do_lnmpsite
@@ -1056,7 +1056,7 @@ function do_wordpress()
 
 		#https://cn.wordpress.org/wordpress-4.9.4-zh_CN.tar.gz
 
-		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.4):" wpversion
+		stty erase '^H' && read -p "请输入将要安装的 Wordpress 中文稳定版本? (格式为x.x.x，默认为 4.9.4):" wpversion && stty erase '^?' 
 		[[ -z "${wpversion}" ]] && wpversion='4.9.4'
 
 		cd /home/lnmpsite
@@ -1088,6 +1088,10 @@ function do_wordpress()
 			docker exec nginx bash -c "chown -R nginx:nginx /usr/share/nginx/html"
 
 			echo -e "${Info}BLOG 网站已部署完成，请访问域名 Wordpress 进行相关设置."
+
+		else
+			echo -e "${Tip}下载安装包失败！"
+		fi
 	fi
 
 	cd ${currpath}
@@ -1096,7 +1100,7 @@ function do_wordpress()
 function do_wpupdate()
 {
 	if [ ! -f /home/lnmpsite/nginx/www/wp-config.php ]; then
-		stty erase '^H' && read -p "发现本地未部署 BLOG 站点，是否进行安装? [Y/n]:" yn
+		stty erase '^H' && read -p "发现本地未部署 BLOG 站点，是否进行安装? [Y/n]:" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			do_wordpress
@@ -1108,7 +1112,7 @@ function do_wpupdate()
 		[[ -f /tmp/wpstable.tar.gz ]] && rm -f /tmp/wpstable.tar.gz
 		if [ ! -f /tmp/wpstable.tar.gz ]; then
 
-			stty erase '^H' && read -p "是否升级到最新的英文版本? [y/N]:" yrn
+			stty erase '^H' && read -p "是否升级到最新的英文版本? [y/N]:" yrn && stty erase '^?' 
 			[[ -z "${yrn}" ]] && yrn='n'
 			if [[ $yn == [Nn] ]]; then
 				echo -e "${Tip}升级被中止！" && exit 1 
@@ -1159,7 +1163,7 @@ function do_lnmpsite()
 
 	currpath=`pwd`
 	if [ -d /home/lnmpsite ]; then
-		stty erase '^H' && read -p "发现本地已存在 LNMP 网站运行环境，是否进行备份? [Y/n]:" yn
+		stty erase '^H' && read -p "发现本地已存在 LNMP 网站运行环境，是否进行备份? [Y/n]:" yn && stty erase '^?' 
 		[[ -z "${yn}" ]] && yn="y"
 		if [[ $yn == [Yy] ]]; then
 			${fsudo} mkdir -p /home/backsite
@@ -1169,7 +1173,7 @@ function do_lnmpsite()
 	fi
 
 	if [ -d /home/lnmpsite ]; then
-		stty erase '^H' && read -p "在不备份的情况下是否删除原有 LNMP 网站运行环境并重新部署? [y/N]:" ynt
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 LNMP 网站运行环境并重新部署? [y/N]:" ynt && stty erase '^?' 
 		[[ -z "${ynt}" ]] && ynt="n"
 		if [[ $ynt == [Yy] ]]; then
 			${fsudo} rm -rf /home/lnmpsite
@@ -1193,7 +1197,7 @@ function do_lnmpsite()
 
 			ftppwd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
 			echo -e "${Tip}请设置 FTP 用户(默认为 ${GreenFont}coder${FontEnd})密码"
-			stty erase '^H' && read -p "(回车，默认密码为 ${ftppwd}):" ftppasswd
+			stty erase '^H' && read -p "(回车，默认密码为 ${ftppwd}):" ftppasswd && stty erase '^?' 
 			[[ -z "${ftppasswd}" ]] && ftppasswd=${ftppwd}
 
 			# 生成FTP安全数据
@@ -1220,7 +1224,7 @@ function do_lnmpsite()
 
 			dbdefpwd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
 			echo -e "${Tip}请设置 MySQL 数据库 Root 密码"
-			stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd
+			stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd && stty erase '^?' 
 			[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
 
 			# 生成数据库安全数据
