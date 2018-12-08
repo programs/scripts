@@ -1243,7 +1243,7 @@ function do_wpbackup()
 						;;
 					esac
 
-					if [ "x${doit}" == "xdo"]; then
+					if [ "x${doit}" == "xdo" ]; then
 
 						echo -e "${Tip}正在初始化，请稍等 ... "
 						#backupsrv=`cat /home/lnmpsite/backup/docker-compose.yml | grep lnmpsite-backup | awk -F 'image:' '{print $2}'`
