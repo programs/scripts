@@ -927,10 +927,13 @@ function do_vrayworld()
 			read -p "请输入alterid (默认为 32):" alterid 
 			[[ -z "${alterid}" ]] && alterid=32
 
+			if [ ! -f /home/vraworld/docker-compose-template.yml ]; then
+				cp /home/vraworld/docker-compose.yml /home/vraworld/docker-compose-template.yml
+			fi
 			config=" \
 UUID_p=${randuuid} \
 ALTERID_p=${alterid}"
-			templ=`cat /home/vraworld/docker-compose.yml`
+			templ=`cat /home/vraworld/docker-compose-template.yml`
 			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/vraworld/docker-compose.yml
 
 			echo -e "${Tip}请牢记以下连接信息"
@@ -1013,6 +1016,9 @@ function do_ssrworld()
 			dashboardpwd=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
 		    privilegetoken=`cat /dev/urandom | head -n 16 | md5sum | head -c 32`
 
+			if [ ! -f /home/ssrworld/docker-compose-template.yml ]; then
+				cp /home/ssrworld/docker-compose.yml /home/ssrworld/docker-compose-template.yml
+			fi
 			config=" \
 UNIFIED_CFG_PORT_p=${cfg_port} \
 SSRCFG_PASSWD_p=${ssr_passwd} \
@@ -1021,7 +1027,7 @@ SSRCFG_PROTOCOL_p=${ssr_proto} \
 SSRCFG_OBFS_p=${ssr_obfs} \
 FRP_TOKEN_KEYS_p=${privilegetoken} \
 FRP_DASHBOARD_PASSWD_p=${dashboardpwd} "
-			templ=`cat /home/ssrworld//docker-compose-template.yml`
+			templ=`cat /home/ssrworld/docker-compose-template.yml`
 			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/ssrworld/docker-compose.yml
 
 			touch /home/lnmpsite/mysql/.passwd
@@ -1154,6 +1160,124 @@ function do_wpupdate()
 
 		cd ${currpath}
 	fi
+}
+
+function do_wprestore()
+{
+	echo -e "${Info}此功能暂未实现" && exit 1
+}
+
+function do_wpbackup()
+{
+	checkdocker
+
+	#用命令备份数据库并删除7天前的备份
+	#data_dir="/path/to/save/data/"
+	#docker exec mysql bash -c "mysqldump -uroot -p${dbpasswd} --all-databases > \"${data_dir}/data_`date +%Y%m%d`.sql\""
+    #find ${data_dir} -mtime +7 -name 'data_[1-9].sql' -exec rm -rf {} \;
+
+	currpath=`pwd`
+	enabled=`docker ps -a | grep backup | wc -l`
+	if [ ! ${enabled} -eq 0 ]; then
+		stty erase '^H' && read -p "发现站点备份机制已启动，需要停用吗? [Y/n]:" yn && stty erase '^?' 
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			cd /home/lnmpsite/backup
+			docker-compose down
+			rm -f /home/lnmpsite/backup/.passwd
+			echo -e "${Info}站点备份机制已停用！如需要请重新执行此命令"
+		fi
+	else
+		stty erase '^H' && read -p "发现站点备份机制未启动，需要启用吗? [Y/n]:" yn && stty erase '^?' 
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+
+			cd /home/lnmpsite/backup
+			if [ -f /home/lnmpsite/backup/docker-compose.yml ]; then
+
+				echo -e "${Info}正在为基于DOCKER的 BLOG 站点启用备份机制 ..."
+				if [ ! -f /home/lnmpsite/backup/.passwd ]; then
+
+					docker-compose down > /dev/null 2>&1
+
+					datamap='/home/lnmpsite:/home/site'
+					backupmap='/home/lnmpback:/home/backup'
+					doit='do' && Apikey='none' && Email='none' && Password='none'
+					Secret_id='none' && Secret_key='none' && Region='none' && Bucketname='none'
+
+					echo -e "${Info}目前支持的站点备份方式如下，请选择合适的进行备份:"
+					echo -e "    1. 备份到腾讯云COS"
+					echo -e "    2. 备份到Ge.tt"
+					echo -e ""
+					stty erase '^H' && read -p "请选择以上备份试 (填数字选项):" selected && stty erase '^?' 
+					[[ -z "${selected}" ]] && selected=0
+					case "$selected" in
+						1)
+						read -p "请输入Secret Id: " Secret_id
+						[[ -z "${Secret_id}" ]] && Secret_id='none'
+
+						read -p "请输入Secret Key: " Secret_key
+						[[ -z "${Secret_key}" ]] && Secret_key='none'
+
+						read -p "请输入Region: " Region
+						[[ -z "${Region}" ]] && Region='none'
+
+						read -p "请输入Bucket name: " Bucketname
+						[[ -z "${Bucketname}" ]] && Bucketname='none'
+						;;
+
+						2)
+						read -p "请输入Api Key: " Apikey
+						[[ -z "${Apikey}" ]] && Apikey='none'
+
+						read -p "请输入Email: " Email
+						[[ -z "${Email}" ]] && Email='none'
+
+						read -p "请输入Password: " Password
+						[[ -z "${Password}" ]] && Password='none'
+						;;
+
+						*)
+						doit=''
+						echo -e "${Tip}输入有误，无法处理，需要的请重试！" && exit 1
+						;;
+					esac
+
+					if [ "x${doit}" == "xdo"]; then
+
+						echo -e "${Tip}正在初始化，请稍等 ... "
+						#backupsrv=`cat /home/lnmpsite/backup/docker-compose.yml | grep lnmpsite-backup | awk -F 'image:' '{print $2}'`
+						#docker run -d --name sebackup -v ${datamap} -v ${backupmap} -e apikey=${Apikey} -e email=${Email} -e password=${Password} -e secret_id=${Secret_id} -e secret_key=${Secret_key} -e region=${Region} -e bucketname=${Bucketname} ${backupsrv}
+						#sleep 5s
+						#docker stop sebackup > /dev/null 2>&1 && docker rm sebackup > /dev/null 2>&1
+
+						# 生成无效信息
+						#Apikey='none' && Email='none' && Password='none'
+					    #Secret_id='none' && Secret_key='none' && Region='none' && Bucketname='none'
+
+						if [ ! -f /home/lnmpsite/backup/docker-compose-template.yml ]; then
+							cp /home/lnmpsite/backup/docker-compose.yml /home/lnmpsite/backup/docker-compose-template.yml
+						fi
+						config=" \
+ApiKey=${Apikey} \
+UserEmail=${Email} \
+UserPasswd=${Password} \
+SecretID=${Secret_id} \
+SecretKey=${Secret_key} \
+Region=${Region} \
+BucketName=${Bucketname} "
+						templ=`cat /home/lnmpsite/backup/docker-compose-template.yml`
+						printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/lnmpsite/backup/docker-compose.yml
+						touch /home/lnmpsite/backup/.passwd
+					fi
+				fi
+			
+				docker-compose up -d
+				echo -e "${Info}站点备份机制已启用！"
+			fi
+		fi
+	fi
+	cd ${currpath}
 }
 
 function do_lnmpsite()
@@ -1305,7 +1429,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | wordpress | wpupdate | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | wordpress | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1347,8 +1471,11 @@ case "$action" in
 	echo "    ssrworld   -- 部署 SSR  环境 (DOCKER环境)"
 	echo "    vrayworld  -- 部署 V2Ray环境 (DOCKER环境)"
 	echo ""
+	echo -e " -- ${GreenFont}博士站${FontEnd} --"
 	echo "    wordpress  -- 部署 BLOG 站点"
 	echo "    wpupdate   -- 升级 BLOG 站点"
+	echo "    wpbackup   -- 备份 BLOG 站点"
+	echo "    wprestore  -- 恢复 BLOG 站点"
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
