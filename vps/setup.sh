@@ -173,7 +173,7 @@ function createSwap()
 		dd if=/dev/zero of=${swapfile} bs=${inputsize}M count=1
 
 		swapsize=0
-		[[ ! -z "${swap_file}" ]] && swapsize=`du -b ${swapfile} | awk '{print $1}'`
+		[[ ! -z "${swapfile}" ]] && swapsize=`du -b ${swapfile} | awk '{print $1}'`
 		if [ ! ${swapsize} -eq 0 ]; then
 
 			chmod 600 ${swapfile}
