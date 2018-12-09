@@ -1405,6 +1405,7 @@ function do_uninsssr()
 			apt-get remove -y supervisor
 			[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
 			[[ -d /home/frp ]] && rm -rf /home/frp
+			rm -f /home/frps*.log
 
 			echo -e "${Info}SSR 及其 FRP 环境已全部移除！"
 		fi
