@@ -680,8 +680,8 @@ function do_ensshkeys()
 		if [ -d ~/.ssh ]; then
 			echo -e "${Tip}正在配置 SSH 授权密钥环境..."
 
-			[[ ~/.ssh/authorized_keys ]] && rm -f ~/.ssh/authorized_keys
-			wget -N --no-check-certificate -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
+			[[ ~/.ssh/authorized_keys ]] && ${fsudo} rm -f ~/.ssh/authorized_keys
+			${fsudo} wget -N --no-check-certificate -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
 			
 			${fsudo} chmod 400 ~/.ssh/authorized_keys
 			${fsudo} chattr +i ~/.ssh/authorized_keys
