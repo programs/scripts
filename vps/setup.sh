@@ -1394,6 +1394,10 @@ function do_update()
 
 function do_uninsssr()
 {
+	if [ ! -f /home/bin/ssrmu.sh ]; then
+		wget -N --no-check-certificate -q -O /home/bin/ssrmu.sh ${url_ssrmu}
+		chmod +x /home/bin/ssrmu.sh
+	fi
 	/home/bin/ssrmu.sh
 
 	ssr_folder='/usr/local/shadowsocksr'
