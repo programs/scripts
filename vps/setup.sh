@@ -147,7 +147,7 @@ function createSwap()
 		echo -e "${Info}当前系统交换分区已存在，大小为${GreenFont} ${swap_size}M ${FontEnd}"
 
 		swap_file=`swapon -s | grep -v 'Filename' | grep -v 'dev' | awk '{print $1}'`
-		if [ ! -z "${swap_file}" && -f ${swap_file} ]; then
+		if [ ! -z "${swap_file}" ] && [ -f ${swap_file} ]; then
 			stty erase '^H' && read -p "是否重新创建交换分区? [Y/n] :" ynt && stty erase '^?' 
 			[[ -z "${ynt}" ]] && ynt="y"
 			if [[ $ynt == [Yy] ]]; then
