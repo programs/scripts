@@ -1433,6 +1433,27 @@ function do_update()
 	echo -e "${Info}更新程序到最新版本 完成!"
 }
 
+function do_uninsfrp()
+{
+	if [ -f /etc/supervisor/conf.d/frp.conf ]; then
+		echo -e "${Info}正在移除 FRP 环境..."
+
+		# 关闭端口
+		iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 7137 -j ACCEPT
+		iptables -D INPUT -p udp -m state --state NEW -m udp --dport 7137:7138 -j ACCEPT
+		iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 8000:9000 -j ACCEPT
+		iptables-save > /etc/iptables.up.rules
+
+		systemctl stop supervisor
+		apt-get remove -y supervisor
+		[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
+		[[ -d /home/frp ]] && rm -rf /home/frp
+		rm -f /home/frps*.log
+	fi
+
+	echo -e "${Info}完成 FRP 环境的移除."
+}
+
 function do_uninsssr()
 {
 	if [ ! -f /home/bin/ssrmu.sh ]; then
@@ -1443,23 +1464,9 @@ function do_uninsssr()
 
 	ssr_folder='/usr/local/shadowsocksr'
 	if [ ! -e ${ssr_folder} ]; then 
-		if [ -f /etc/supervisor/conf.d/frp.conf ]; then
-			echo -e "${Info}正在移除 FRP 环境..."
+		do_uninsfrp
 
-			# 关闭端口
-			iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 7137 -j ACCEPT
-			iptables -D INPUT -p udp -m state --state NEW -m udp --dport 7137:7138 -j ACCEPT
-			iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 8000:9000 -j ACCEPT
-			iptables-save > /etc/iptables.up.rules
-
-			systemctl stop supervisor
-			apt-get remove -y supervisor
-			[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
-			[[ -d /home/frp ]] && rm -rf /home/frp
-			rm -f /home/frps*.log
-
-			echo -e "${Info}SSR 及其 FRP 环境已全部移除！"
-		fi
+		echo -e "${Info}SSR 及其 FRP 环境已全部移除！"
 	fi
 }
 
@@ -1538,6 +1545,7 @@ case "$action" in
 	echo "    ssrstatus  -- 查看 SSR 状态"
 	echo ""
 	echo "    setupfrp   -- 安装单独的 FRP 环境"
+	echo "    uninsfrp   -- 移除单独的 FRP 环境"
 	echo "    editfrp    -- 修改 FRP 配置"
 	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
 	echo "" 
