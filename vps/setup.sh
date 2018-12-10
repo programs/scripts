@@ -27,6 +27,7 @@ url_nodequery='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
 url_v2ray='https://233blog.com/v2ray.sh'
 url_wordpress='https://cn.wordpress.org/wordpress-'
 url_wplasten='https://wordpress.org/latest.tar.gz'
+url_frpaddr='https://github.com/fatedier/frp/releases/download/'
 
 function checkRoot()
 {
@@ -359,14 +360,49 @@ function installFrp()
 	[[ -f /home/frp/frpstart ]] && rm -f /home/frp/frpstart
 	[[ -f /home/frp/frps.ini ]] && rm -f /home/frp/frps.ini
 
-	wget -N --no-check-certificate -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
-	wget -N --no-check-certificate -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
+	frpdefault=''
+	stty erase '^H' && read -p "请输入要安装的 FRP 版本? (格式为x.x.x，如: 0.21.0，SSR 可直接回车):" frpversion && stty erase '^?' 
+	if [ ! -z "${frpversion}" ]; then
+
+		[[ -f /tmp/frp_${frpversion}_linux_amd64.tar.gz ]] && rm -f /tmp/frp_${frpversion}_linux_amd64.tar.gz
+		#https://github.com/fatedier/frp/releases/download/v0.21.0/frp_0.21.0_linux_amd64.tar.gz
+		wget -N --no-check-certificate -q -O /tmp/frp_${frpversion}_linux_amd64.tar.gz ${url_frpaddr}v${frpversion}/frp_${frpversion}_linux_amd64.tar.gz
+		
+		if [ -f /tmp/frp_${frpversion}_linux_amd64.tar.gz ]; then
+			tar -C /home/frp/ -xzvf /tmp/frp_${frpversion}_linux_amd64.tar.gz > /dev/null 2>&1
+			mv /home/frp/frp_${frpversion}_linux_amd64/* /home/frp
+			rm -rf /home/frp/frp_${frpversion}_linux_amd64
+			rm -f /tmp/frp_${frpversion}_linux_amd64.tar.gz
+			[[ -f /home/frp/frps.ini ]] && rm -f /home/frp/frps.ini
+			#rm -f /home/frp/frpc* /home/frp/LICENSE
+		fi
+
+		if [ ! -f /home/frp/frps ]; then
+			echo -e "${Tip}未找到需要安装的版本，程序将按默认的处理，如需要安装指定版本，请重新执行安装指令！"
+			frpdefault='default'
+		fi
+	fi
+
+    if [ "${frpdefault}" == "default" ]; then
+		wget -N --no-check-certificate -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
+	fi
+	#wget -N --no-check-certificate -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
 	wget -N --no-check-certificate -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
 
-	if [ -f /home/frp/frps.ini ]; then
+	if [ -f /home/frp/frps.ini ] && [ -f /home/frp/frps ]; then
 
 		chmod +x /home/frp/frps
-		chmod +x /home/frp/frpstart
+		#chmod +x /home/frp/frpstart
+
+		# 开启端口
+		iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 7137 -j ACCEPT
+		iptables -D INPUT -p udp -m state --state NEW -m udp --dport 7137:7138 -j ACCEPT
+		iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 8000:9000 -j ACCEPT
+
+		iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 7137 -j ACCEPT
+		iptables -I INPUT -p udp -m state --state NEW -m udp --dport 7137:7138 -j ACCEPT
+		iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 8000:9000 -j ACCEPT
+		iptables-save > /etc/iptables.up.rules
 
 		[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
 		wget -N --no-check-certificate -q -O /etc/supervisor/conf.d/frp.conf https://raw.githubusercontent.com/programs/scripts/master/vps/config/frp.conf
@@ -590,16 +626,6 @@ function do_iptable()
 	fi
 }
 
-function do_editfrp()
-{
-	vim /home/frp/frps.ini
-	stty erase '^H' && read -p "是否使FRP立即生效 ? [Y/n] :" yn && stty erase '^?' 
-	[[ -z "${yn}" ]] && yn="y"
-	if [[ $yn == [Yy] ]]; then
-		systemctl restart supervisor
-	fi
-}
-
 function do_configssh()
 {
 	sshPort=`cat /etc/ssh/sshd_config | grep 'Port ' | grep -oE [0-9] | tr -d '\n'`
@@ -632,6 +658,21 @@ function do_qsecurity()
 	echo -e "${Info}暴力猜用户名的人:"
 	blpjman=`grep "Failed password for invalid user" /var/log/auth.log | awk '{print $13}' | sort | uniq -c | sort -nr | more`
 	echo -e "${blpjman}"
+}
+
+function do_setupfrp()
+{
+	installFrp
+}
+
+function do_editfrp()
+{
+	vim /home/frp/frps.ini
+	stty erase '^H' && read -p "是否使FRP立即生效 ? [Y/n] :" yn && stty erase '^?' 
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+		systemctl restart supervisor
+	fi
 }
 
 function do_frpsecurity()
@@ -1405,6 +1446,12 @@ function do_uninsssr()
 		if [ -f /etc/supervisor/conf.d/frp.conf ]; then
 			echo -e "${Info}正在移除 FRP 环境..."
 
+			# 关闭端口
+			iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 7137 -j ACCEPT
+			iptables -D INPUT -p udp -m state --state NEW -m udp --dport 7137:7138 -j ACCEPT
+			iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 8000:9000 -j ACCEPT
+			iptables-save > /etc/iptables.up.rules
+
 			systemctl stop supervisor
 			apt-get remove -y supervisor
 			[[ -f /etc/supervisor/conf.d/frp.conf ]] && rm -f /etc/supervisor/conf.d/frp.conf
@@ -1434,7 +1481,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | wordpress | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | setupfrp | wordpress | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1489,6 +1536,8 @@ case "$action" in
 	echo "    ssripv6    -- 开关 SSR 的 IPv6"
 	echo "    ssrmdport  -- 重新设置 SSR 端口(仅单用户)"
 	echo "    ssrstatus  -- 查看 SSR 状态"
+	echo ""
+	echo "    setupfrp   -- 安装单独的 FRP 环境"
 	echo "    editfrp    -- 修改 FRP 配置"
 	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
 	echo "" 
