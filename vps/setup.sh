@@ -386,14 +386,14 @@ function installFrp()
     if [ "${frpdefault}" == "default" ]; then
 		wget -N --no-check-certificate -q -O /home/frp/frps https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps
 	fi
-	#wget -N --no-check-certificate -q -O /home/frp/frpstart https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frpstart
 	wget -N --no-check-certificate -q -O /home/frp/frps.ini https://raw.githubusercontent.com/programs/scripts/master/vps/frp/frps.ini
+	if [ "${frpdefault}" != "default" ]; then
+		sed -i "/^privilege_token/c\token = L1234567890=frp." /home/frp/frps.ini
+	fi
 
 	if [ -f /home/frp/frps.ini ] && [ -f /home/frp/frps ]; then
 
 		chmod +x /home/frp/frps
-		#chmod +x /home/frp/frpstart
-
 		# 开启端口
 		iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 7137 -j ACCEPT
 		iptables -D INPUT -p udp -m state --state NEW -m udp --dport 7137:7138 -j ACCEPT
