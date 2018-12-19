@@ -729,6 +729,7 @@ function do_ensshkeys()
 			${fsudo} wget -N --no-check-certificate -q -O ~/.ssh/authorized_keys https://raw.githubusercontent.com/programs/scripts/master/vps/config/authorized_keys
 			
 			${fsudo} chmod 400 ~/.ssh/authorized_keys
+			${fsudo} chown ${username}:${username} ~/.ssh/authorized_keys
 			${fsudo} chattr +i ~/.ssh/authorized_keys
 			${fsudo} chattr +i ~/.ssh
 
