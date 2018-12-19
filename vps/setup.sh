@@ -381,6 +381,10 @@ function installFrp()
 			echo -e "${Tip}未找到需要安装的版本，程序将按默认的处理，如需要安装指定版本，请重新执行安装指令！"
 			frpdefault='default'
 		fi
+
+	else
+		echo -e "${Tip}程序将按默认的处理，如需要安装指定版本，请重新执行安装指令！"
+		frpdefault='default'
 	fi
 
     if [ "${frpdefault}" == "default" ]; then
