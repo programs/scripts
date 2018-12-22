@@ -1250,10 +1250,12 @@ function do_wpbackup()
 					backupmap='/home/lnmpback:/home/backup'
 					doit='do' && Apikey='none' && Email='none' && Password='none'
 					Secret_id='none' && Secret_key='none' && Region='none' && Bucketname='none'
+					Tcuserid='none' && Tcpasswd='none' && Tcdevaddr='none'
 
 					echo -e "${Info}目前支持的站点备份方式如下，请选择合适的进行备份:"
 					echo -e "    1. 备份到腾讯云COS"
 					echo -e "    2. 备份到Ge.tt"
+					echo -e "    3. 备份到TeraCloud"
 					echo -e ""
 					stty erase '^H' && read -p "请选择以上备份试 (填数字选项):" selected && stty erase '^?' 
 					[[ -z "${selected}" ]] && selected=0
@@ -1283,6 +1285,17 @@ function do_wpbackup()
 						[[ -z "${Password}" ]] && Password='none'
 						;;
 
+						3)
+						read -p "请输入User Id: " Tcuserid
+						[[ -z "${Tcuserid}" ]] && Tcuserid='none'
+
+						read -p "请输入Password: " Tcpasswd
+						[[ -z "${Tcpasswd}" ]] && Tcpasswd='none'
+
+						read -p "请输入WebDAV地址: " Tcdevaddr
+						[[ -z "${Tcdevaddr}" ]] && Tcdevaddr='none'
+						;;
+
 						*)
 						doit=''
 						echo -e "${Tip}输入有误，无法处理，需要的请重试！" && exit 1
@@ -1292,14 +1305,15 @@ function do_wpbackup()
 					if [ "x${doit}" == "xdo" ]; then
 
 						echo -e "${Tip}正在初始化，请稍等 ... "
-						#backupsrv=`cat /home/lnmpsite/backup/docker-compose.yml | grep lnmpsite-backup | awk -F 'image:' '{print $2}'`
-						#docker run -d --name sebackup -v ${datamap} -v ${backupmap} -e apikey=${Apikey} -e email=${Email} -e password=${Password} -e secret_id=${Secret_id} -e secret_key=${Secret_key} -e region=${Region} -e bucketname=${Bucketname} ${backupsrv}
-						#sleep 5s
-						#docker stop sebackup > /dev/null 2>&1 && docker rm sebackup > /dev/null 2>&1
+						backupsrv=`cat /home/lnmpsite/backup/docker-compose.yml | grep lnmpsite-backup | awk -F 'image:' '{print $2}'`
+						docker run -d --name sebackup -v ${datamap} -v ${backupmap} -e tcdevaddr=${Tcdevaddr} -e tcpasswd=${Tcpasswd} -e tcuserid=${Tcuserid} -e apikey=${Apikey} -e email=${Email} -e password=${Password} -e secret_id=${Secret_id} -e secret_key=${Secret_key} -e region=${Region} -e bucketname=${Bucketname} ${backupsrv}
+						sleep 5s
+						docker stop sebackup > /dev/null 2>&1 && docker rm sebackup > /dev/null 2>&1
 
 						# 生成无效信息
-						#Apikey='none' && Email='none' && Password='none'
-					    #Secret_id='none' && Secret_key='none' && Region='none' && Bucketname='none'
+						Apikey='none' && Email='none' && Password='none'
+					    Secret_id='none' && Secret_key='none' && Region='none' && Bucketname='none'
+						Tcuserid='none' && Tcpasswd='none' && Tcdevaddr='none'
 
 						if [ ! -f /home/lnmpsite/backup/docker-compose-template.yml ]; then
 							cp /home/lnmpsite/backup/docker-compose.yml /home/lnmpsite/backup/docker-compose-template.yml
@@ -1311,7 +1325,10 @@ UserPasswd=${Password} \
 SecretID=${Secret_id} \
 SecretKey=${Secret_key} \
 Region=${Region} \
-BucketName=${Bucketname} "
+BucketName=${Bucketname} \
+Tcuserid=${Tcuserid} \
+Tcpasswd=${Tcpasswd} \
+Tcdevaddr=${Tcdevaddr} "
 						templ=`cat /home/lnmpsite/backup/docker-compose-template.yml`
 						printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/lnmpsite/backup/docker-compose.yml
 						touch /home/lnmpsite/backup/.passwd
