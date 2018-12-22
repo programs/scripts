@@ -1305,15 +1305,15 @@ function do_wpbackup()
 					if [ "x${doit}" == "xdo" ]; then
 
 						echo -e "${Tip}正在初始化，请稍等 ... "
-						backupsrv=`cat /home/lnmpsite/backup/docker-compose.yml | grep lnmpsite-backup | awk -F 'image:' '{print $2}'`
-						docker run -d --name sebackup -v ${datamap} -v ${backupmap} -e tcdevaddr=${Tcdevaddr} -e tcpasswd=${Tcpasswd} -e tcuserid=${Tcuserid} -e apikey=${Apikey} -e email=${Email} -e password=${Password} -e secret_id=${Secret_id} -e secret_key=${Secret_key} -e region=${Region} -e bucketname=${Bucketname} ${backupsrv}
-						sleep 5s
-						docker stop sebackup > /dev/null 2>&1 && docker rm sebackup > /dev/null 2>&1
+						#backupsrv=`cat /home/lnmpsite/backup/docker-compose.yml | grep lnmpsite-backup | awk -F 'image:' '{print $2}'`
+						#docker run -d --name sebackup -v ${datamap} -v ${backupmap} -e tcdevaddr=${Tcdevaddr} -e tcpasswd=${Tcpasswd} -e tcuserid=${Tcuserid} -e apikey=${Apikey} -e email=${Email} -e password=${Password} -e secret_id=${Secret_id} -e secret_key=${Secret_key} -e region=${Region} -e bucketname=${Bucketname} ${backupsrv}
+						#sleep 5s
+						#docker stop sebackup > /dev/null 2>&1 && docker rm sebackup > /dev/null 2>&1
 
 						# 生成无效信息
-						Apikey='none' && Email='none' && Password='none'
-					    Secret_id='none' && Secret_key='none' && Region='none' && Bucketname='none'
-						Tcuserid='none' && Tcpasswd='none' && Tcdevaddr='none'
+						#Apikey='none' && Email='none' && Password='none'
+					    #Secret_id='none' && Secret_key='none' && Region='none' && Bucketname='none'
+						#Tcuserid='none' && Tcpasswd='none' && Tcdevaddr='none'
 
 						if [ ! -f /home/lnmpsite/backup/docker-compose-template.yml ]; then
 							cp /home/lnmpsite/backup/docker-compose.yml /home/lnmpsite/backup/docker-compose-template.yml
