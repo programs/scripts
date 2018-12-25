@@ -1218,7 +1218,12 @@ function do_wpnewsite()
 	echo -e "${Info}   ${GreenFont}- ./nginx/conf.d:/etc/nginx/conf.d${FontEnd} "
 	echo -e "${Info}5. 进入mysql执行: ${GreenFont}mysql -uroot -p\$MYSQL_ROOT_PASSWORD -P3306 -e \"CREATE DATABASE 站点名\"${FontEnd} "
 	echo -e "${Info}6. 将站点文件拷贝到目录 ${GreenFont}/home/lnmpsite/nginx/站点名, 并配置相应数据库${FontEnd} "
-	echo -e "${Info}7. 最后执行重启命令 "
+	echo -e "${Info}7. 执行下列命令设置权限: "
+	echo -e "${Info}   ${GreenFont}chmod 755 /home/lnmpsite/nginx/站点名${FontEnd}"
+	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/站点名 -type d -exec chmod 755 {} \;${FontEnd}"
+	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/www -iname "*.php"  -exec chmod 644 {} \;${FontEnd}"
+	echo -e "${Info}8. 执行重启命令: ${GreenFont}lnmpsite down/up ${FontEnd}"
+	echo -e "${Info}9. 最后执行: ${GreenFont}docker exec nginx bash -c \"chown -R nginx:nginx /usr/share/nginx/站点名\"${FontEnd}"
 }
 
 function do_wprestore()
