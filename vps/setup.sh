@@ -1208,6 +1208,19 @@ function do_wpupdate()
 	fi
 }
 
+function do_wpnewsite()
+{
+	echo -e "${Info}1. /home/lnmpsite/nginx/nginx.conf 文件中加入 ${GreenFont}include /etc/nginx/conf.d/*.conf;${FontEnd}"
+	echo -e "${Info}2. /home/lnmpsite/nginx/conf.d 目录中加入 ${GreenFont}站点名.conf${FontEnd} 并加入配置"
+	echo -e "${Info}3. /home/lnmpsite/nginx 目录下创建目录为 ${GreenFont}站点名${FontEnd}"
+	echo -e "${Info}4. /home/lnmpsite/docker-compose.yml 文件中的nginx段加入: "
+	echo -e "${Info}   ${GreenFont}- ./nginx/站点名:/usr/share/nginx/站点名${FontEnd} "
+	echo -e "${Info}   ${GreenFont}- ./nginx/conf.d:/etc/nginx/conf.d${FontEnd} "
+	echo -e "${Info}5. 进入mysql执行: ${GreenFont}mysql -uroot -p\$MYSQL_ROOT_PASSWORD -P3306 -e \"CREATE DATABASE 站点名\"${FontEnd} "
+	echo -e "${Info}6. 将站点文件拷贝到目录 ${GreenFont}/home/lnmpsite/nginx/站点名, 并配置相应数据库${FontEnd} "
+	echo -e "${Info}7. 最后执行重启命令 "
+}
+
 function do_wprestore()
 {
 	echo -e "${Info}此功能暂未实现" && exit 1
@@ -1510,7 +1523,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | setupfrp | uninsfrp | wordpress | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | setupfrp | uninsfrp | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1557,6 +1570,7 @@ case "$action" in
 	echo "    wpupdate   -- 升级 BLOG 站点"
 	echo "    wpbackup   -- 备份 BLOG 站点"
 	echo "    wprestore  -- 恢复 BLOG 站点"
+	echo "    wpnewsite  -- 新建 BLOG 站点"
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
