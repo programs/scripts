@@ -1208,6 +1208,41 @@ function do_wpupdate()
 	fi
 }
 
+function do_wpenable()
+{
+	wp_rootpath=''
+	stty erase '^H' && read -p "请输入站点所在根目录: " wp_rootpath && stty erase '^?' 
+	if [ -z "${wp_rootpath}" ] || [ ! -d ${wp_rootpath} ]; then
+		echo -e "${Tip}无效站点目录！" && exit 1
+	fi
+
+    if [ -f ${wp_rootpath}/wp-config.php ]; then
+	   chmod -R 777 ${wp_rootpath}
+	   echo -e "${Tip}完成设置! 请记住: ${GreenFont}升级完WP后务必恢复原目录权限!${FontEnd} "
+	else
+	    echo -e "${Tip}无效站点目录！" && exit 1
+	fi	
+}
+
+function do_wpdisable()
+{
+	wp_rootpath=''
+	stty erase '^H' && read -p "请输入站点所在根目录: " wp_rootpath && stty erase '^?' 
+	if [ -z "${wp_rootpath}" ] || [ ! -d ${wp_rootpath} ]; then
+		echo -e "${Tip}无效站点目录！" && exit 1
+	fi
+
+	if [ -f ${wp_rootpath}/wp-config.php ]; then
+	    chmod 755 ${wp_rootpath}
+		find ${wp_rootpath} -type d -exec chmod 755 {} \;
+		find ${wp_rootpath} -type f -exec chmod 644 {} \;
+
+		echo -e "${Tip}完成设置! "
+	else
+	    echo -e "${Tip}无效站点目录！" && exit 1
+	fi	
+}
+
 function do_wpnewsite()
 {
 	echo -e "${Tip}此功能暂未实现，但可以手工操作布署新站点:"
@@ -1218,10 +1253,7 @@ function do_wpnewsite()
 	echo -e "${Info}   php  段加入: ${GreenFont}- ./nginx/站点名:/usr/share/nginx/站点名${FontEnd} "
 	echo -e "${Info}4. 进入mysql执行: ${GreenFont}mysql -uroot -p\$MYSQL_ROOT_PASSWORD -P3306 -e \"CREATE DATABASE 站点名\"${FontEnd} "
 	echo -e "${Info}5. 将站点WP文件拷贝到目录 ${GreenFont}/home/lnmpsite/nginx/站点名, 并配置相应数据库${FontEnd} "
-	echo -e "${Info}6. 执行下列命令设置权限: "
-	echo -e "${Info}   ${GreenFont}chmod 755 /home/lnmpsite/nginx/站点名${FontEnd}"
-	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/站点名 -type d -exec chmod 755 {} \;${FontEnd}"
-	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/站点名 -iname \"*.php\"  -exec chmod 644 {} \;${FontEnd}"
+	echo -e "${Info}6. 执行下列命令设置权限: ${GreenFont}vps wpdisable ${FontEnd}"
 	echo -e "${Info}7. 执行重启命令: ${GreenFont}lnmpsite down/up ${FontEnd}"
 	echo -e "${Info}8. 最后执行: ${GreenFont}docker exec nginx bash -c \"chown -R nginx:nginx /usr/share/nginx/站点名\"${FontEnd}"
 	echo -e "${Tip}除主站点外，本脚本不提供其它站点的WP更新!"
@@ -1529,7 +1561,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | setupfrp | uninsfrp | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | setupfrp | uninsfrp | wpdisable | wpenable | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1577,6 +1609,9 @@ case "$action" in
 	echo "    wpbackup   -- 备份 BLOG 站点"
 	echo "    wprestore  -- 恢复 BLOG 站点"
 	echo "    wpnewsite  -- 新建 BLOG 站点(仅子站)"
+	echo ""
+	echo "    wpenable   -- 开启全站可读写权限"
+	echo "    wpdisable  -- 禁用全站可读写权限"
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
