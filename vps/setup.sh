@@ -1221,7 +1221,7 @@ function do_wpnewsite()
 	echo -e "${Info}6. 执行下列命令设置权限: "
 	echo -e "${Info}   ${GreenFont}chmod 755 /home/lnmpsite/nginx/站点名${FontEnd}"
 	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/站点名 -type d -exec chmod 755 {} \;${FontEnd}"
-	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/站点名 -iname "*.php"  -exec chmod 644 {} \;${FontEnd}"
+	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/站点名 -iname \"*.php\"  -exec chmod 644 {} \;${FontEnd}"
 	echo -e "${Info}7. 执行重启命令: ${GreenFont}lnmpsite down/up ${FontEnd}"
 	echo -e "${Info}8. 最后执行: ${GreenFont}docker exec nginx bash -c \"chown -R nginx:nginx /usr/share/nginx/站点名\"${FontEnd}"
 	echo -e "${Tip}除主站点外，本脚本不提供其它站点的WP更新!"
