@@ -1210,11 +1210,12 @@ function do_wpupdate()
 
 function do_wpnewsite()
 {
-	echo -e "${Tip}此功能暂未实现，但可以手工操作新站点布署:"
-	echo -e "${Info}1. /home/lnmpsite/nginx/conf.d 目录中加入 ${GreenFont}站点名.conf${FontEnd} 并加入配置"
+	echo -e "${Tip}此功能暂未实现，但可以手工操作布署新站点:"
+	echo -e "${Info}1. /home/lnmpsite/nginx/conf.d 目录中加入 ${GreenFont}站点名.conf${FontEnd} 并加入配置(配置可参考主站)"
 	echo -e "${Info}2. /home/lnmpsite/nginx 目录下创建目录为 ${GreenFont}站点名${FontEnd}"
-	echo -e "${Info}3. /home/lnmpsite/docker-compose.yml 文件中的nginx段加入: "
-	echo -e "${Info}   ${GreenFont}- ./nginx/站点名:/usr/share/nginx/站点名${FontEnd} "
+	echo -e "${Info}3. 修改文件 /home/lnmpsite/docker-compose.yml "
+	echo -e "${Info}   nginx段加入: ${GreenFont}- ./nginx/站点名:/usr/share/nginx/站点名${FontEnd} "
+	echo -e "${Info}   php  段加入: ${GreenFont}- ./nginx/站点名:/usr/share/nginx/站点名${FontEnd} "
 	echo -e "${Info}4. 进入mysql执行: ${GreenFont}mysql -uroot -p\$MYSQL_ROOT_PASSWORD -P3306 -e \"CREATE DATABASE 站点名\"${FontEnd} "
 	echo -e "${Info}5. 将站点WP文件拷贝到目录 ${GreenFont}/home/lnmpsite/nginx/站点名, 并配置相应数据库${FontEnd} "
 	echo -e "${Info}6. 执行下列命令设置权限: "
@@ -1223,6 +1224,7 @@ function do_wpnewsite()
 	echo -e "${Info}   ${GreenFont}find /home/lnmpsite/nginx/站点名 -iname "*.php"  -exec chmod 644 {} \;${FontEnd}"
 	echo -e "${Info}7. 执行重启命令: ${GreenFont}lnmpsite down/up ${FontEnd}"
 	echo -e "${Info}8. 最后执行: ${GreenFont}docker exec nginx bash -c \"chown -R nginx:nginx /usr/share/nginx/站点名\"${FontEnd}"
+	echo -e "${Tip}除主站点外，本脚本不提供其它站点的WP更新!"
 }
 
 function do_wprestore()
@@ -1571,10 +1573,10 @@ case "$action" in
 	echo ""
 	echo -e " -- ${GreenFont}博士站${FontEnd} --"
 	echo "    wordpress  -- 部署 BLOG 站点"
-	echo "    wpupdate   -- 升级 BLOG 站点"
+	echo "    wpupdate   -- 升级 BLOG 站点(仅主站)"
 	echo "    wpbackup   -- 备份 BLOG 站点"
 	echo "    wprestore  -- 恢复 BLOG 站点"
-	echo "    wpnewsite  -- 新建 BLOG 站点"
+	echo "    wpnewsite  -- 新建 BLOG 站点(仅子站)"
 	echo ""
 	echo -e " -- ${GreenFont}看世界${FontEnd} --"
 	echo "    setupssr   -- 安装并初始化 SSR 环境"
