@@ -1236,6 +1236,7 @@ function do_wpdisable()
 	    chmod 755 ${wp_rootpath}
 		find ${wp_rootpath} -type d -exec chmod 755 {} \;
 		find ${wp_rootpath} -type f -exec chmod 644 {} \;
+		chown -R 998:${defaultuser} ${wp_rootpath}
 
 		echo -e "${Tip}完成设置! "
 	else
