@@ -25,6 +25,8 @@ url_sbanch='https://raw.githubusercontent.com/oooldking/script/master/superbench
 url_ipaddr='https://www.bt.cn/Api/getIpAddress'
 url_nodequery='https://raw.github.com/nodequery/nq-agent/master/nq-install.sh'
 url_v2ray='https://233blog.com/v2ray.sh'
+url_speeder='xiaofd.github.io/ruisu.sh'
+url_speederall='https://github.com/chiakge/Linux-NetSpeed/raw/master/tcp.sh'
 url_wordpress='https://cn.wordpress.org/wordpress-'
 url_wplasten='https://wordpress.org/latest.tar.gz'
 url_frpaddr='https://github.com/fatedier/frp/releases/download/'
@@ -1509,6 +1511,21 @@ function do_update()
 	echo -e "${Info}更新程序到最新版本 完成!"
 }
 
+function do_inspeeder()
+{
+	wget -N --no-check-certificate -q -O /home/bin/speeder.sh ${url_speederall} && chmod +x /home/bin/speeder.sh
+	echo -e "${Tip}当前四合一提速脚本已下载, 如需要请自行选择提速方案"
+	echo -e "${Tip}可以执行此命令: ${GreenFont}/home/bin/speeder.sh${FontEnd}"
+
+	stty erase '^H' && read -p "是否确定只布署适合 ubuntu16.04 的锐速? (暂不提供卸载操作) [Y/n] :" yn && stty erase '^?' 
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+
+		wget -N --no-check-certificate -q -O /home/bin/ruisu.sh ${url_speeder} && chmod +x /home/bin/ruisu.sh
+		/home/bin/ruisu.sh 
+	fi
+}
+
 function do_uninsfrp()
 {
 	if [ -f /etc/supervisor/conf.d/frp.conf ]; then
@@ -1546,6 +1563,49 @@ function do_uninsssr()
 	fi
 }
 
+function do_uninssh()
+{
+	stty erase '^H' && read -p "是否确定重置 ssh 授权密钥环境? [Y/n] :" yn && stty erase '^?' 
+	[[ -z "${yn}" ]] && yn="y"
+	if [[ $yn == [Yy] ]]; then
+
+		echo -e "${Tip}正在重置 SSH 授权密钥环境..."
+		if [ -f /home/${defaultuser}/.ssh/authorized_keys ]; then
+			
+			chattr -i /home/${defaultuser}/.ssh/authorized_keys
+			chattr -i /home/${defaultuser}/.ssh
+			chmod 755 /home/${defaultuser}/.ssh/authorized_keys
+
+			rm -rf /home/${defaultuser}/.ssh
+		fi
+
+		echo -e "${Tip}正在重置 SSH 防火墙端口为 ${GreenFont}19022${FontEnd}"
+		iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 19022 -j ACCEPT
+		iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 18022 -j ACCEPT
+		iptables -D INPUT -p udp -m state --state NEW -m udp --dport 18022 -j ACCEPT
+		iptables-save > /etc/iptables.up.rules
+		iptables-restore < /etc/iptables.up.rules
+
+		sed -i "/^PasswordAuthentication/c\PasswordAuthentication yes" /etc/ssh/sshd_config
+		sed -i "/^PermitRootLogin/c\PermitRootLogin yes" /etc/ssh/sshd_config
+		sed -i "/^Port/c\Port 19022" /etc/ssh/sshd_config
+		service sshd restart
+	fi
+}
+
+function do_uninstall()
+{
+	do_removenq
+	do_uninsssr
+	do_uninsdocker
+	do_uninssh
+	do_deluser
+
+    echo -e "${Info}请重置当前 VPS 的 root 密码!"
+	passwd
+	echo -e "${Info}当前 VPS 环境已重置."
+}
+
 function do_version() {
 	echo -e "${GreenFont}${0##*/}${FontEnd} V 1.0.0 "
 }
@@ -1564,7 +1624,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | setupfrp | uninsfrp | wpdisable | wpenable | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | uninstall | inspeeder | setupfrp | uninsfrp | wpdisable | wpenable | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1583,6 +1643,7 @@ case "$action" in
 	echo ""
 	echo -e " -- ${GreenFont}初始化${FontEnd} --"
 	echo "    install    -- 安装并初始化 VPS 环境"
+	echo "    uninstall  -- 重置 VPS 环境"
 	echo "    bbrstatus  -- 查看 BBR 状态"
 	echo "    speedtest  -- 测试网络速度"
 	echo "    qsecurity  -- 查询本地安全信息"
@@ -1629,6 +1690,7 @@ case "$action" in
 	echo "    editfrp    -- 修改 FRP 配置"
 	echo "    frpsecurity-- 修改 FRP 面板密码及令牌"
 	echo "" 
+	echo "    inspeeder  -- 安装 bbr (原版/魔改/plus) + 锐速"
 	echo "    setupvray  -- 安装并初始化 V2Ray环境"
 	echo ""
 	echo -e " -- ${GreenFont}监控${FontEnd} --"
