@@ -1503,6 +1503,81 @@ MySQLpwd=${dbngpwd}"
 	cd ${currpath}
 }
 
+function do_javasite()
+{
+	checkdocker
+	echo -e "${Info}正在部署基于DOCKER的 JWEB 网站运行环境 ..."
+
+	currpath=`pwd`
+	if [ -d /home/javasite ]; then
+		stty erase '^H' && read -p "发现本地已存在 JWEB 网站运行环境，是否进行备份? [Y/n]:" yn && stty erase '^?' 
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			${fsudo} mkdir -p /home/backsite
+			${fsudo} tar zcvf /home/backsite/jweb`date +%Y%m%d.%H%M%S`.tar.gz /home/javasite
+			${fsudo} rm -rf /home/javasite
+		fi
+	fi
+
+	if [ -d /home/javasite ]; then
+		stty erase '^H' && read -p "在不备份的情况下是否删除原有 JWEB 网站运行环境并重新部署? [y/N]:" ynt && stty erase '^?' 
+		[[ -z "${ynt}" ]] && ynt="n"
+		if [[ $ynt == [Yy] ]]; then
+			${fsudo} rm -rf /home/javasite
+		fi
+	fi
+
+	if [ ! -d /home/javasite ]; then
+		cd /home
+		${fsudo} git clone https://github.com/gorouter/javasite.git
+		${fsudo} mv /home/javasite  /home/javasite
+		${fsudo} chmod +x /home/javasite/japp
+		[[ -f /usr/bin/japp ]] && ${fsudo} rm -f /usr/bin/japp
+		${fsudo} ln -s /home/javasite/japp /usr/bin/japp
+	fi
+
+	if [ -f /home/javasite/docker-compose.yml ]; then
+
+		if [ ! -f /home/javasite/mysql/.passwd ]; then
+
+			/home/javasite/japp down > /dev/null 2>&1
+
+			dbdefpwd=`cat /dev/urandom | head -n 12 | md5sum | head -c 12`
+			echo -e "${Tip}请设置 MySQL 数据库 Root 密码"
+			stty erase '^H' && read -p "(回车，默认密码为 ${dbdefpwd}):" dbpasswd && stty erase '^?' 
+			[[ -z "${dbpasswd}" ]] && dbpasswd=${dbdefpwd}
+
+			# 生成数据库安全数据
+			mysqldb=`cat /home/javasite/docker-compose.yml | grep lnmpsite-mysql | awk -F 'image:' '{print $2}'`
+			datamap='/home/javasite/mysql/data:/var/lib/mysql'
+			confmap='/home/javasite/mysql/my.cnf:/etc/my.cnf'
+			docker run -d --name semysql -p 3306:3306 -v ${datamap} -v ${confmap} -e MYSQL_ROOT_PASSWORD=${dbpasswd} ${mysqldb}
+			echo -e "${Tip}正在初始化数据库，请稍等 ... "
+			sleep 10s
+			docker exec semysql bash -c "/usr/local/bin/wpsinit"
+			sleep 2s
+			docker stop semysql > /dev/null 2>&1 && docker rm semysql > /dev/null 2>&1
+			echo -e "${Tip}请牢记此数据库 ROOT 密码:${GreenFont} ${dbpasswd} ${FontEnd}"
+
+			# 生成无效密码信息
+			dbngpwd=`cat /dev/urandom | head -n 32 | md5sum | head -c 32`
+			config=" \
+MySQLpwd=${dbngpwd}"
+			templ=`cat /home/javasite/docker-compose.yml`
+			printf "${config}\ncat << EOF\n${templ}\nEOF" | bash > /home/javasite/docker-compose.yml
+			touch /home/javasite/mysql/.passwd
+		fi
+
+		# 查看日志信息 docker logs mysql
+		cd /home/javasite
+		/home/javasite/japp up
+		echo -e "${Info}JWEB 网站运行环境部署完成."
+	else
+		echo -e "${Info}JWEB 网站运行环境部署失败，请检查！."
+	fi
+	cd ${currpath}
+}
+
 function do_update()
 {
 	[[ -f /usr/bin/vps ]] && rm -f /usr/bin/vps 
@@ -1624,7 +1699,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | uninstall | inspeeder | setupfrp | uninsfrp | wpdisable | wpenable | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | uninstall | javasite | inspeeder | setupfrp | uninsfrp | wpdisable | wpenable | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1664,6 +1739,7 @@ case "$action" in
 	echo "    makedocker -- 生成 DOCKER 运行环境"
 	echo "    uninsdocker-- 移除 DOCKER 运行环境"
 	echo "    lnmpsite   -- 部署 LNMP 环境 (DOCKER环境)"
+	echo "    javasite   -- 部署 JWEB 环境 (DOCKER环境)"
 	echo "    ssrworld   -- 部署 SSR  环境 (DOCKER环境)"
 	echo "    vrayworld  -- 部署 V2Ray环境 (DOCKER环境)"
 	echo ""
