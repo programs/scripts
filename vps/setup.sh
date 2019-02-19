@@ -1014,12 +1014,12 @@ function do_mtproxy()
     echo -e "${Tip}请牢记此端口号:${GreenFont} ${mtport} ${FontEnd}"
 
     echo -e "${Info} 开始配置 MTProxy 代理......"
-	iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 18240 -j ACCEPT
-	iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 18240 -j ACCEPT
+	iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport ${mtport} -j ACCEPT
+	iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport ${mtport} -j ACCEPT
 	iptables-save > /etc/iptables.up.rules
 
-	docker run -d -p443:${mtport} --name=mtproxy --restart=always -v proxy-config:/home/mtproxy telegrammessenger/proxy:latest
-	sleep 2s
+	docker run -d -p${mtport}:443 --name=mtproxy --restart=always -v proxy-config:/home/mtproxy telegrammessenger/proxy:latest
+	sleep 5s
 	docker logs mtproxy
 
 	echo -e "${Info} MTProxy 代理配置完成."
