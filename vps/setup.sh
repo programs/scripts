@@ -1004,6 +1004,27 @@ ALTERID_p=${alterid}"
 	cd ${currpath}
 }
 
+function do_mtproxy()
+{
+	checkdocker
+	echo -e "${Info}正在部署基于DOCKER的 MTProxy 代理 ..."
+
+	read -p "请输入访问端口 (默认为 18240):" mtport
+	[[ -z "${mtport}" ]] && mtport='18240'
+    echo -e "${Tip}请牢记此端口号:${GreenFont} ${mtport} ${FontEnd}"
+
+    echo -e "${Info} 开始配置 MTProxy 代理......"
+	iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 18240 -j ACCEPT
+	iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 18240 -j ACCEPT
+	iptables-save > /etc/iptables.up.rules
+
+	docker run -d -p443:${mtport} --name=mtproxy --restart=always -v proxy-config:/home/mtproxy telegrammessenger/proxy:latest
+	sleep 2s
+	docker logs mtproxy
+
+	echo -e "${Info} MTProxy 代理配置完成."
+}
+
 function do_ssrworld()
 {
 	checkdocker
@@ -1699,7 +1720,7 @@ checkSystem
 action=$1
 [[ -z $1 ]] && action=help
 case "$action" in
-	version | install | uninstall | javasite | inspeeder | setupfrp | uninsfrp | wpdisable | wpenable | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
+	version | install | uninstall | mtproxy | javasite | inspeeder | setupfrp | uninsfrp | wpdisable | wpenable | wordpress | wpnewsite | wpupdate | wpbackup | wprestore | setupvray | setupssr | uninsssr | vrayworld | ssrworld | ssrmdport | ssripv6 | redoswap | update | speedtest | lnmpsite | bbrstatus | ssrstatus | sysupgrade | adduser | deluser | ssrmu | uninsdocker | iptable | configssh | qsecurity | editfrp | frpsecurity | enableipv6 | makedocker | nodequery | removenq)
 	checkRoot
 	do_${action}
 	;;
@@ -1742,6 +1763,7 @@ case "$action" in
 	echo "    javasite   -- 部署 JWEB 环境 (DOCKER环境)"
 	echo "    ssrworld   -- 部署 SSR  环境 (DOCKER环境)"
 	echo "    vrayworld  -- 部署 V2Ray环境 (DOCKER环境)"
+	echo "    mtproxy    -- 部署 Telegram 代理 (DOCKER环境)"
 	echo ""
 	echo -e " -- ${GreenFont}博士站${FontEnd} --"
 	echo "    wordpress  -- 部署 BLOG 站点"
