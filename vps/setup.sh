@@ -1013,6 +1013,17 @@ function do_mtproxy()
 	[[ -z "${mtport}" ]] && mtport='18240'
     echo -e "${Tip}请牢记此端口号:${GreenFont} ${mtport} ${FontEnd}"
 
+    enabled=`docker ps -a | grep telegrammessenger | wc -l`
+	if [ ! ${enabled} -eq 0 ]; then
+		stty erase '^H' && read -p "发现 MTProxy 已启动，需要停用并重新部署吗? [Y/n]:" yn && stty erase '^?' 
+		[[ -z "${yn}" ]] && yn="y"
+		if [[ $yn == [Yy] ]]; then
+			containId=`docker ps -a | grep telegrammessenger | awk '{print $1}'`
+			docker stop ${containId}
+			docker rm ${containId}
+		fi
+	fi
+	
     echo -e "${Info} 开始配置 MTProxy 代理......"
 	iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport ${mtport} -j ACCEPT
 	iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport ${mtport} -j ACCEPT
