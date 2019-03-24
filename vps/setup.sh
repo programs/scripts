@@ -1722,7 +1722,7 @@ echo -e "${GreenFont}
 +-----------------------------------------------------
 | VPS Script 1.x FOR Ubuntu/Debian
 +-----------------------------------------------------
-| Copyright © 2015-2018 programs All rights reserved.
+| Copyright © 2015-2019 programs All rights reserved.
 +-----------------------------------------------------
 ${FontEnd}"
 
