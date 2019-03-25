@@ -39,20 +39,20 @@ function do_default()
 function p_createWebpackConfig()
 {
     echo "
-var path = require('webpack');
+// https://webpack.github.io 
+var path = require('path');
+var htmlWebplugin = require('html-webpack-plugin');
 module.exports = {
-    entry: [__dirname+'/src/index.js'],  // 项目入口文件的路径,可以有多个文件
+    entry: {
+        index: __dirname+'/src/index.js'  // 项目入口文件的路径,可以有多个文件
+    }
     output: { // 定义webpack输出
         path: __dirname+'/dist',
-        publicPath:__dirname+'/dist/',
-        filename: 'index_bundle.js'
+        publicPath: 'https://ljjun.com/',
+        filename: 'js/[name]-[chunkhash].js'
     },
     module: {
         loaders: [
-            {   // json加载器 
-                test: /\.json$/,
-                loader: 'json-loader'
-            },
             {   // 编译ES6语法配置
                 test: /\.js$/,          // 匹配文件的正则
                 loader: 'babel-loader', // 指定调用loader去处理对应文件类型
@@ -61,24 +61,58 @@ module.exports = {
                     presets: ['es2015', 'react']
                 }
             },
+            {   // HTML加载器
+                test: /\.html$/,
+                loader: 'html-loader'
+            },
+            {   // EJS加载器
+                test: /\.(ejs|tpl)$/,
+                loader: 'ejs-loader'
+            },
             {   // CSS加载器
                 test: /\.css$/,
-                loader: 'style-loader!css-loader'
+                loader: 'style-loader!css-loader?importLoaders=1!postcss-loader'
+            },
+            {   // LESS加载器
+                test: /\.less$/,
+                loader: 'style-loader!css-loader!postcss-loader!less-loader'
+            },
+            {   // SASS加载器
+                test: /\.s?ss$/,
+                loader: 'style-loader!css-loader!postcss-loader!sass-loader'
             },
             {   // 解析.vue文件
                 test:/\.vue$/,
                 loader:'vue-loader'
             },
+            {   // json加载器 
+                test: /\.json$/,
+                loader: 'json-loader'
+            },
             {   // 图片转化,小于8K自动转化为base64的编码
-                test: /\.(png|jpg|gif)$/,
-                loader:'url-loader?limit=8192'
+                test: /\.(png|jp?g|gif|svg)$/i,
+                /*
+                loaders: [
+                    'url-loader?limit=8192&name=assets/[name]-[hash:5].[ext]',
+                    'image-webpack-loader'
+                ]*/
+                loader:'url-loader',
+                query: {
+                    limit: 8192,
+                    name: 'assets/[name]-[hash:5].[ext]'
+                }
             }
         ]
     },
-    vue:{
+    vue: {
         loaders:{
             js:'babel-loader'
         }
+    },
+    postcss: {
+        require('autoprefixer')({
+                broswers: ['last 5 versions']
+        })
     },
     resolve: {
         // require时省略的扩展名, 如：require('app') 不需要app.js
@@ -97,7 +131,18 @@ module.exports = {
         publicPath: '/asses/'', // 设置该属性后, webpack-dev-server会相对于该路径
         grogress: true
     },
-    plugins:[] // 插件
+    plugins:[ // 插件
+        new htmlWebplugin({
+            filename: 'index.html', 
+            template: 'index.html',
+            inject: false, //'head', // htmlWebplugin.files.index.entry
+            date: new Date(), // htmlWebplugin.options.date
+            minify: { // 压缩
+                removeComments: true,
+                collapseWhitespace: true
+            }
+        })
+    ] 
 }
     " >> ./webpack.config.js
 }
@@ -109,10 +154,11 @@ function do_init()
     npm install --save-dev webpack 
 
     npm install --save-dev css-loader style-loader json-loader url-loader file-loader
-    npm install --save-dev wechat-mina-loader node-sass postcss-loader less less-loader
+    npm install --save-dev wechat-mina-loader html-loader ejs-loader image-webpack-loader
+    npm install --save-dev postcss-loader node-sass sass-loader less less-loader 
     npm install --save-dev vue vue-cli vue-router vue-loader vue-style-loader vue-template-compiler 
     npm install --save-dev react react-dom react-router
-    npm install --save-dev pug ramda regenerator-runtime lodash shelljs express
+    npm install --save-dev pug ramda regenerator-runtime lodash shelljs express autoprefixer
 
     npm install --save-dev webpack-dev-server copy-webpack-plugin progress-bar-webpack-plugin extract-text-webpack-plugin html-webpack-plugin
     npm install --save-dev babel-core babel-loader babel-plugin-import babel-preset-2015 babel-preset-react babel-preset-env
