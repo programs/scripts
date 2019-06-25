@@ -895,7 +895,7 @@ function do_makedocker()
 
 	# https://github.com/docker/compose/releases
 	[[ -f /usr/local/bin/docker-compose ]] && ${fsudo} rm -f /usr/local/bin/docker-compose
-	${fsudo} curl -fsSL https://github.com/docker/compose/releases/download/1.23.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+	${fsudo} curl -L https://github.com/docker/compose/releases/download/1.24.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose 
 	${fsudo} chmod +x /usr/local/bin/docker-compose
 
 	stty erase '^H' && read -p "是否设置国内镜像加速? [y/N]:" ynn && stty erase '^?' 
