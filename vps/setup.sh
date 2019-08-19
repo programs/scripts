@@ -475,7 +475,7 @@ function setupServices()
 {
 	sleep 1s
 	echo -e "${Info}正在安装必要的系统软件..."
-	apt-get install -y --no-install-recommends virt-what fail2ban ca-certificates
+	apt-get install -y --no-install-recommends virt-what fail2ban ca-certificates iptables-persistent
 
 	sleep 1s
 	echo -e "${Info}正在下载源文件..."
