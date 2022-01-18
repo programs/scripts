@@ -43,7 +43,7 @@ if [[ -z $package_name ]]; then
   exit
 fi
 
-if [[ -z $package_name ]]; then
+if [[ -z $install_script ]]; then
   echo "install_script can't not be empty"
   usage
   exit

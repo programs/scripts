@@ -43,6 +43,18 @@ function checksudo()
 	fi
 }
 
+function docker_ip() {
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1
+}
+
+function docker_ips() {
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -a -q)
+}
+
+function docker_ports() {
+  netstat -nlp |grep docker-proxy|awk '{print $4}'|sort
+}
+
 # 检查系统类型
 function checkSystem()
 {
